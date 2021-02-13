@@ -26,7 +26,7 @@ computer.
 
 ## User installation of TeXLive from tug.org
 
-To do this, get the latest texlive installer from tug.org, and unzip it.
+To do this, get the latest TeXLive installer from tug.org, and unzip it.
 Then cd into the unzipped directory and run `$ perl install-tl`
 (not as root).
 This will start the command line installer whose interface you should try
