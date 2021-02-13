@@ -1,4 +1,4 @@
-# Useful lessons fom teminal sessions
+# Lessons from terminal sessions
 
 ## Command substitution can be better-suited than pipes
 
@@ -12,9 +12,9 @@ $ echo `ls`
 bin docs repos 
 ```
 
-Basckticks are the more portable option but cannot be nested.
+Backticks are the more portable option but cannot be nested.
 
-## Quoted command substitution peseves newlines and whitespace
+## Quoted command substitution preserves newlines and whitespace
 
 ```
 $ echo "$(ls)"
