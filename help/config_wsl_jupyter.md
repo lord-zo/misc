@@ -4,31 +4,31 @@ Last updated: 13/02/2021
 
 If I ever open a web browser from WSL2, it is usually a Jupyter Notebook.
 I'll explain how to configure Jupyter to use the browser you've setup.
-Start by creating a configuration file for your Jupyter application
+Start by creating a configuration file for your Jupyter server
 
 ```
-$ jupyter <application> --generate-config
+$ jupyter server --generate-config
 ```
 
-If you are using Jupyter notebook, replace `<application>` with `notebook`.
-If you are using Jupyter lab, replace `<application>` with `lab`.
-Each application uses its own configuration file.
+I am assuming you have a recent version of Jupyter because there is a
+[migration](https://jupyter-server.readthedocs.io/en/stable/operators/migrate-from-nbserver.html)
+to using Jupyter server for all Jupyter applications (notebook, lab).
 
 ## Telling Jupyter where to find the browser
 
 I would recommend that you edit the configuration file, stored by default
-in `~/.jupyter/jupyer_<application>_config.py`.
+in `~/.jupyter/jupyer_server_config.py`.
 
 ### Using configuration file 
 
-In particular, replace `# c.NotebookApp.browser = ''` with 
-`c.NotebookApp.browser = '<path to browser executable>'`.
+In particular, replace `# c.ServerApp.browser = ''` with 
+`c.ServerApp.browser = '<path to browser executable>'`.
 Assuming `win-www-browser` is a symlink to your Windows browser on the path,
 we may use it as the `<path to browser executable>`.
 
 ### Using python defaults
 
-The text above the `c.NotebookApp.browser` explains this, but instead 
+The text above the `c.ServerApp.browser` explains this, but instead 
 of specifying the browser in the configuration file you may also set
 the `BROWSER` variable used by python's `webbrowser` module, adding it
 to your `.bashrc` or `.profile` (the former is run for every bash shell
@@ -50,11 +50,9 @@ Instead, you can open the Jupyter application using the
 `https://localhost/8888/` link display when the Jupyter server is started.
 
 To tell Jupyter to open this link by default, change 
-`# c.NotebookApp.use_redirect_file = True` to
-`c.NotebookApp.use_redirect_file = False` in the configuration file.
+`# c.ServerApp.use_redirect_file = True` to
+`c.ServerApp.use_redirect_file = False` in the configuration file.
 
-Note that this configuration option is only available in recent versions of
-Jupyter.
 Jupyter notebooks will now open seamlessly in a Windows browser from WSL2.
 
 # Sources
