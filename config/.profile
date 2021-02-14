@@ -25,6 +25,7 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
+
 # set prompt: "lxvm .../repos/misc main $"
 export PROMPT_DIRTRIM=2
 export PS1="\[\033[01;32m\]\u \[\033[01;34m\]\w\[\033[90m\]\$(git branch 2>/dev/null | sed -n \"s/^*//p\" )\[\033[00m\] \$ "
