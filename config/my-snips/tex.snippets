@@ -1,0 +1,238 @@
+snippet $ "math mode" w
+\$ ${1} \$$0
+endsnippet
+
+snippet beg "begin{} / end{}" bA
+\begin{$1}
+	$0
+\end{$1}
+endsnippet
+
+snippet al "align environment" bA
+\begin{align}
+	$1	&=	$0
+\end{align}
+endsnippet
+
+snippet enum "enumerate environment" bA
+\begin{enumerate}[$1]
+\item	$2
+\item	$0
+\end{enumerate}
+endsnippet
+
+snippet BF "math bold face" Ai
+\mathbf $0
+endsnippet
+
+snippet BB "math blackboard" Ai
+\mathbb $0
+endsnippet
+
+snippet CC "math calligraphy" Ai
+\mathcal $0
+endsnippet
+
+snippet FF "math fraktur" Ai
+\mathfrak $0
+endsnippet
+
+snippet // "fraction" A
+\frac{$1}{$2}$0
+endsnippet
+
+snippet \sum "sum" Ai 
+\sum_{$1}^{$2}$0
+endsnippet
+
+snippet \int "integral" Ai
+\int_{$1}^{$2} $3 \dd{$4}$0
+endsnippet
+
+snippet \sqrt	"square root" Ai
+\sqrt{$1}$0
+endsnippet
+
+snippet \abs "absolute value" Ai
+\abs{$1}^{$2}$0
+endsnippet
+
+snippet \va "arrow vector" Ai
+\va{$1}$0
+endsnippet
+
+snippet \vb "bold vector" Ai
+\vb{$1}$0
+endsnippet
+
+snippet \ket "ket vector" Ai
+\ket{$1}$0
+endsnippet
+
+snippet \bra "bra operator" Ai
+\bra{$1}$0
+endsnippet
+
+snippet \bk "bra-ket" Ai
+\braket{$1}{$2}$0
+endsnippet
+
+snippet \mel "transition probability" Ai
+\mel{$1}{$2}{$3}$0
+endsnippet
+
+snippet \( "round parentheses" Ai
+\qty( $1 )$0
+endsnippet
+
+snippet \[ "square brackets" Ai
+\qty[ $1 ]$0
+endsnippet
+
+snippet \{ "curly brackets" Ai
+\qty{ $1 }$0
+endsnippet
+
+snippet \eval "evaluate cell" Ai
+\eval{ $1 }_{$2}^{$3}$0
+endsnippet
+
+snippet \R "reals" Ai
+\mathbf{R}$0
+endsnippet
+
+snippet \Q "rationals" Ai
+\mathbf{Q}$0
+endsnippet
+
+snippet \Z "integers" Ai
+\mathbf{Z}$0
+endsnippet
+
+snippet \N "naturals" Ai
+\mathbf{N}$0
+endsnippet
+
+snippet mathskel "a skeleton for problem sets" b
+\documentclass{amsart}
+\usepackage[margin=1in,headheight=12pt]{geometry}
+\linespread{1.075}
+% Import helpful packages
+\usepackage{microtype}
+\usepackage{amssymb,physics}
+\usepackage[shortlabels]{enumitem}
+\setlist{listparindent=3.25em}
+\usepackage{hyperref}
+% Use New Century Schoolbook font
+\usepackage{fouriernc}
+%%% Define head/foot details
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{\today}
+\chead{\setinfo}
+\rhead{\name}
+\cfoot{\thepage}
+%%% Theorem environments
+\newtheorem{prop}{Proposition}
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}
+%%% Update INFO here
+\newcommand{\setinfo}{$1}
+\newcommand{\name}{Lorenzo X. Van Muñoz}
+\newcommand{\myemail}{lxvm@caltech.edu}
+\newcommand{\myaddress}{MSC 1020}
+
+\begin{document}
+
+%%% Title Page
+\thispagestyle{plain}
+\begin{center}
+\textsc{\huge\setinfo\\\\
+\large\today}\\\\\bigskip
+\textbf{\huge\name\\\\
+\large\myemail\\\\\myaddress}
+\end{center}\bigskip
+\tableofcontents
+\newpage
+
+%%% Exercises
+\section{Exercises}
+
+\begin{enumerate}[1.]
+
+\item $0
+
+\end{enumerate}
+
+\newpage
+
+%%% Solutions
+\section{Solutions}
+
+
+
+\end{document}
+endsnippet 
+
+snippet humskel "a skeleton for hum papers" b
+\documentclass[12pt]{article}
+%%% Define page style
+\usepackage[
+paper=letterpaper,
+margin=1in,
+includehead,
+headheight=28pt
+]{geometry}
+\linespread{1.075} % increases line height, by wizofez
+%%% Import helpful packages
+\usepackage{microtype}
+\usepackage[shortlabels]{enumitem}
+\setlist{
+	leftmargin=\parindent,
+	listparindent=3.25em
+}
+\usepackage{hyperref}
+%%% Set font to EB Garamond
+%%% https://tug.org/FontCatalogue/  
+\usepackage{ebgaramond}
+%%% Define head/foot details
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{\courseTitle\\\\\courseCode}
+\rhead{\today\\\\\name}
+\cfoot{\thepage}
+%%% Code to do word count
+%%% Taken from https://tex.stackexchange.com/questions/448605/total-word-count-using-texcount
+\usepackage{shellesc} 
+\newcommand{\quickwordcount}{%
+	\ShellEscape{texcount -1 -sum -merge \jobname.tex > \jobname.wc}%
+	\input{\jobname.wc}words%
+}
+%%% Update INFO here
+\newcommand{\courseCode}{HPS/Pl 123}
+\newcommand{\courseTitle}{Introduction to the Philosophy of Physics}
+\newcommand{\prof}{Dr. Mario Hubert}
+\newcommand{\assignment}{$1}
+\newcommand{\name}{Lorenzo X. Van Muñoz}
+\newcommand{\email}{lxvm@caltech.edu}
+\newcommand{\address}{MSC 1020}
+
+\begin{document}
+%%% Title Page
+\thispagestyle{plain}
+
+\begin{center}
+\textsc{\huge\assignment\\\\
+\large\courseCode : \courseTitle\\\\\prof\\\\\today\\\\
+}\bigskip
+\textbf{\huge\name\\\\
+\large\email\\\\\address\\\\}
+\bigskip\quickwordcount
+\end{center}\bigskip
+\tableofcontents
+\newpage
+
+$0
+
+\end{document}
+endsnippet

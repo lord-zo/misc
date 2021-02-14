@@ -1,0 +1,34 @@
+snippet pyscript "layout for a python script" bA
+#!/usr/bin/env python3
+
+# $1.py
+# Author: Lorenzo Van Muñoz
+# Last Updated $2
+
+'''
+$3
+'''
+
+import $4
+
+def $5():
+    '''
+    $6
+    '''
+    $0
+    return
+
+if __name__ == '__main__':
+    $5()
+    raise SystemExit()
+endsnippet
+
+snippet parser "initiates an argument parses" b
+parser = argparse.ArgumentParser(   \
+    description='''$1''')
+
+parser.add_argument('$2',   \
+    help='$3')
+
+args = parser.parse_args()  
+endsnippet
