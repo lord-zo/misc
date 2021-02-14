@@ -53,7 +53,7 @@ To tell Jupyter to open this link by default, change
 `# c.ServerApp.use_redirect_file = True` to
 `c.ServerApp.use_redirect_file = False` in the configuration file.
 
-Jupyter notebooks will now open seamlessly in a Windows browser from WSL2.
+Jupyter applications will now open seamlessly in a Windows browser from WSL2.
 
 # Sources
 
