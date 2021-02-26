@@ -15,5 +15,8 @@
 *.cb
 *.cb2
 .*.lb
+## Bibliography auxiliary files:
+*.bbl
 ## Build tool auxiliary files:
 *.fdb_latexmk
+*.run.xml
