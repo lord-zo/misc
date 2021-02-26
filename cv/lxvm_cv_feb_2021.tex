@@ -1,8 +1,8 @@
 \documentclass{article}
 \usepackage
 [
-paper=letterpaper,
-margin=1in
+    paper=letterpaper,
+    margin=1in
 ]
 {geometry}
 \linespread{1.075}
@@ -16,7 +16,8 @@ margin=1in
 \setlist
 {
     nosep,
-    align=left
+    align=left,
+    left=0pt .. \parindent
 }
 
 \usepackage{hyperref}
@@ -31,8 +32,8 @@ margin=1in
 
 \usepackage
 [
-style=authoryear,
-sorting=ynt
+    style=authoryear,
+    sorting=ynt
 ]
 {biblatex}
 \addbibresource{\jobname.bib}
@@ -121,8 +122,8 @@ $\quad$
 \subsection*{Computing Experience}
 
 \begin{enumerate}
-	\item [Languages:] Python, R, MATLAB, COMSOL Multiphysics, Mathematica, Javascript
-	\item [Tools:] Version control (Git), Cluster computing (Slurm), \LaTeX\ (\TeX\ Live), GNU/Linux (WSL 2 Debian)
+    \item [Languages:] Python, R, MATLAB, COMSOL Multiphysics, Mathematica, Javascript
+    \item [Tools:] Version control (Git), Cluster computing (Slurm), \LaTeX\ (\TeX\ Live), GNU/Linux (WSL 2 Debian)
 \end{enumerate}
 
 \end{document}
