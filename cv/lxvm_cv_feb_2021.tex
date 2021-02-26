@@ -1,0 +1,125 @@
+\documentclass{article}
+\usepackage
+[
+paper=letterpaper,
+margin=1in
+]
+{geometry}
+\linespread{1.075}
+\pagestyle{empty}
+
+\usepackage{microtype}
+\usepackage{palatino}
+
+\usepackage{multicol}
+\usepackage{enumitem}
+\setlist
+{
+    nosep,
+    align=left
+}
+
+\usepackage{hyperref}
+\hypersetup
+{
+    pdfinfo=
+    {
+        Title={Curriculum Vitae},
+        Author={Lorenzo X. Van Muñoz},
+    }
+}
+
+\usepackage
+[
+style=authoryear,
+sorting=ynt
+]
+{biblatex}
+\addbibresource{\jobname.bib}
+
+
+%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\section*{Lorenzo X. Van Muñoz}
+
+\href{mailto:lxvm@caltech.edu}{lxvm@caltech.edu}
+$\quad$
+\href{https://github.com/lord-zo}{github.com/lord-zo}
+$\quad$
++1 858 519 6724
+
+\noindent \textit{3rd year undergraduate physics major, Caltech}
+
+
+\begin{multicols}{2}
+
+\subsection*{Research Interests}
+
+\noindent Quantum systems and computation \\
+\noindent Turbulence and fluid dynamics \\
+\noindent Renewable energy
+
+
+\subsection*{Education}
+
+\begin{enumerate}
+    \item [(2018 $\to$ Present)] California Institute of Technology
+        \indent Major: Physics; Advisor: Gil Refael; GPA: 4.0
+    \item [(2014 $\to$ 2018)] University City High School
+\end{enumerate}
+
+\end{multicols}
+
+
+\subsection*{Fellowships and Awards}
+
+\begin{enumerate}
+    \item [(2020 $\to$ Present)] Mellon Mays Undergraduate Fellow
+    \item [(2020 $\to$ Present)] Mathes and Dr. Frank J. Nagy Memorial Scholarhips
+    \item [(Jun. 2018)] San Diego Air and Space Mueseum Scholarship
+\end{enumerate}
+
+
+\nocite{*}
+\printbibliography[title={Publications}, heading=subbibliography]
+
+
+\subsection*{Research Experience}
+
+\begin{enumerate}
+    \item [(Summer 2020)] Troian Group, Caltech; Mellon Mays SURF Fellow \\
+        Project: Influence of Substrate Curvature on Dynamic Cone Formation in Electrified Liquids
+    \item [(Summer 2019)] Lewis Group, Caltech; Richard H. Cox SURF Fellow \\
+        Project: Influence of Substrates on the Nucleation of Phototropic Se-Te Nanostructures
+    \item [(Summer 2017)] Sánchez Group, UC San Diego; Volunteer experimental lab assistant \\
+        Project: On the critical conditions for pool-fire puffing
+\end{enumerate}
+
+
+\subsection*{Community Leadership}
+
+\begin{enumerate}
+    \item [(2018 $\to$ Present)] Caltech Science Olympiad; Test Writer and Event Captain \\
+        Developed materials and exams for Sounds of Music Event \\
+        Translated event materials into Spanish for National Science Olympiad outreach
+    \item [(2018 $\to$ Present)] Caltech Bike Lab; Vice President and Treasurer \\
+        Rebuilt the Caltech Bikeshare to provide free, sustainable transport for campus community \\
+        Organized weekly casual bicycle rides for students to see L.A. \\
+        Maintained the campus bicycle workshop and gave free weekly bicycle repair lessons
+    \item [(Summer 2020)] Student-Faculty Programs; SURF Ambassador \\
+        Organized virtual gatherings and gift-giving for SURF fellows
+    \item [(2019 $\to$ 2020)] Lloyd House; Peer Advocate \\
+        Served as a community resource for human connection and counseling
+\end{enumerate}
+
+
+\subsection*{Computing Experience}
+
+\begin{enumerate}
+	\item [Languages:] Python, R, MATLAB, COMSOL Multiphysics, Mathematica, Javascript
+	\item [Tools:] Version control (Git), Cluster computing (Slurm), LaTeX (TeXLive), GNU/Linux (WSL2 Debian)
+\end{enumerate}
+
+\end{document}

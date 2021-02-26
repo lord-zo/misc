@@ -69,13 +69,15 @@ manage as the mirrors may become out-of-date.
 To install a reasonably equipped version of TeXLive with common packages
 for LaTeX,`$ apt install texlive` should suffice.
 Debian will always run `tlmgr` in user mode (it says so in the `tlmgr` man
-page), but to install your own packages you first need to run 
+page).
+Debian doesn't recommend relying on user mode which you can read about here
+`/usr/share/doc/texlive-base/README.tlmgr-on-Debian.md` if you've installed.
+Instead they recommend installing Vanilla TeXLive in Debian [here](https://tug.org/texlive/debian.html).
+Anyway, to install your own packages in user mode you first need to run 
 `$ tlmgr init-usertree`.
-You can then use `tlmgr` to install packages, collections, and schemes
-as per your needs.
-Debian is courteous and sets up all the man and info pages for you.
-
+You can then use `tlmgr` to install packages, collections, and schemes.
+I haven't noticed problems with user mode, but probably best to follow Debian advice.
 
 # Sources
 
-_**RTFM**_
+[TeXLive on Debian](https://tug.org/texlive/debian.html)
