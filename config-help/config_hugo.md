@@ -70,7 +70,9 @@ Make sure to do this before building the site:
 echo 'theme = "HugoTeX"' >> config.toml
 ```
 
-The second and last submodule will be your project site:
+as well as edit the `config.toml` to have the correct title and url.
+
+The second and last submodule (for now) will be your project site:
 
 ```
 git submodule add -b main https://github.com/<username>/<username>.github.io.git public

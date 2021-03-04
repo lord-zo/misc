@@ -2,7 +2,7 @@ Last updated: 13/02/2021
 
 # How to automatically open Jupyter Notebooks from WSL2
 
-TL;DR `$cp misc/config/.jupyter/ ~/.jupyter`
+TL;DR `$ cp misc/config/.jupyter/ ~/.jupyter`
 
 If I ever open a web browser from WSL2, it is usually a Jupyter Notebook.
 I'll explain how to configure Jupyter to use the browser you've setup.
@@ -46,7 +46,7 @@ opened by you, the later is run only on login shells (i.e. when you
 yourself start the shell)).
 
 ```
-$ echo "export BROWSER=x-www-browser" > ~/.profile
+$ echo "export BROWSER=x-www-browser" >> ~/.profile
 ```
 
 ## Telling Jupyter to open https://localhost/8888/
