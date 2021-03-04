@@ -13,7 +13,7 @@ Big picture:
 Advantages of this approach:
 - hugo will build your site for you
 - all your work in the local repository will look like one project
-- push changes to source or public directories separately, if useful
+- push changes to source or public repositories separately, if useful
 - github pages requires you to have the public directory public so that
 your website is free for you, but by separating the public and source
 directories, you can keep the source directory private if you want
@@ -24,7 +24,7 @@ Note: I don't intend to explain how to migrate an existing hugo website to
 github. If you are trying to do this, I believe you can figure it out:
 you are smart! Maybe this helps you too. 
 
-Note: This is just a demonstration of how you can structure a hugo
+Note: This is just a demonstration of how you can structure a hugo project
 but there are certainly more ways than one to do it. I think hugo's
 website currently recommends a github action. The focus here is on the
 infrastructure/integrating with github and not on the design of the website.
@@ -32,8 +32,8 @@ infrastructure/integrating with github and not on the design of the website.
 Install hugo and git (all the dependencies you'll need :) )
 
 On github.com, create repositories with the following names:
-- `<username>.github.io`, if this is for a [user github page](https://docs.github.com/en/github/working-with-github-pages/about-github-pages#user--organization-pages)
-- `<username>.github.io.src`, or whatever you prefer
+- `<username>/<username>.github.io`, if this is for a [user github page](https://docs.github.com/en/github/working-with-github-pages/about-github-pages#user--organization-pages)
+- `<username>/<username>.github.io.src`, or whatever you prefer
 
 Start the [hugo website](https://gohugo.io/getting-started/quick-start/).
 
