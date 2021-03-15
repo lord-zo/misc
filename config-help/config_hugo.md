@@ -11,7 +11,7 @@ Big picture:
 - coordinate these 2 repositories as git submodules
 
 Advantages of this approach:
-- hugo will build your site for you
+- hugo will build your site and github will host it
 - all your work in the local repository will look like one project
 - push changes to source or public repositories separately, if useful
 - github pages requires you to have the public directory public so that

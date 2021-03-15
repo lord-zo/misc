@@ -13,9 +13,9 @@
 # and then run `./<script>.sh` so that it runs
 # in its own process and resolves its path
 
-# You can't `source` the script because it runs
-# the commands in the shell as if you typed them
-# as explained in `source --help`
+# You can't `source` or `.` the script because it
+# runs the commands in the shell as if you typed
+# them as explained in `source --help` or `. --help`
 
 CONFIG_PATH=`readlink -f "$0"`
 CONFIG_FILE=`basename $CONFIG_PATH`
