@@ -3,7 +3,7 @@
 alias cp='cp -i'
 alias mv='mv -i'
 # ---command line history---
-r='fc -s'
+alias r='fc -s'
 # ---python---
 alias python=python3
 # ---venv---
