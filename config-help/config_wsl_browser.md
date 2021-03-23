@@ -32,6 +32,7 @@ This will create a symlink called `/etc/alternatives/www-browser` to
 `/usr/bin/www-browser` to `/etc/alternatives/www-browser`.
 Now applications which look for a browser can use this one by default.
 For example `xdg-open` is a common utility which uses `www-browser`.
+Another is Debian's `sensible-browser`.
 
 If you have multiple Windows browsers you want to use, you can install
 them under the same alternative and then use the `update-alternatives`
