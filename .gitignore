@@ -23,4 +23,4 @@
 *.bcf
 *.run.xml
 ## Backup conf files
-backup_*.txt
+backup_*.conf

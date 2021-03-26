@@ -29,8 +29,8 @@ then
 fi
 
 # Configurable
-. ./backup.conf.sh
-. ./backup.read.conf.sh
+. ./backup_conf.sh
+. ./backup_read_conf.sh
 
 # Background
 
