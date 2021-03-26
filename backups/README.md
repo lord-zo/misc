@@ -12,6 +12,11 @@ I write my own script because it might be helpful eventually.
 However, you should only trust this as much as you trust tar,
 and the security of your backups, because there is no guarantee
 that bugs or issues break the backup process.
+People report issues with tar in restoring incremental backups.
+Feel free to read about it.
+These scripts are not rigorously tested, so if you can find any
+bugs feel free to tell me about the issue, and, if you can, the
+solution as well.
 
 Otherwise, there is other software to do basically the
 same thing.
@@ -42,25 +47,29 @@ Here is an ascii drawing of what the file structure roughly looks like:
 ```
 x is a .tar file
 o is a .snar file with metadata about the archive
-xo is a pair of .tar and .snar files created the same day
-_/-|\^>< are lines or connectors to draw the graph
+-|^ are branches in the graph which indicate dependencies
+Symbols in the same column are created at the same time
 
-| Level |                Archive structure                     |
-| ----- | >-------------------> Time >-------------------> ... |
-| 0     |    x->x->x   x->x   x->x  x->x   x->x   x->x   x ... |
-|       |    |         |      |     |      |      |      | ... |
-| 1     |  o-^      xo-^   xo-^   o-^   xo-^    o-^   xo-^ ... |
-|       |  |        |      |      |     |       |     |    ... |
-| 2     |  o--------^------^      xo----^       o-----^--> ... |
-|       |  |                      |             |          ... |
-| 3     | xo----------------------^            xo--------> ... |
-| ----- | >-------------------> Time >-------------------> ... |
+| Level |                Archive structure                      |
+| ----- | >-------------------> Time >--------------------> ... |
+| 3     |   x x x   x x   x x   x x   x x   x x   x x x     ... |
+|       | o-^-^-^ o-^-^ o-^-^ o-^-^ o-^-^ o-^-^ o-^-^-^ o-> ... |
+| 2     | |       x     x     |     x     |     x       x   ... |
+|       | o-------^-----^     o-----^     o-----^-------^   ... |
+| 1     | |                   x           |                 ... |
+|       | o-------------------^           o---------------> ... |
+| 0     | x                               x                 ... |
+| ----- | >-------------------> Time >--------------------> ... |
+
+Note: when you follow a branch down and left, and extract in reverse
+order (from bottom left to top right) all the archives (x's) indicated by
+^ symbols along that branch, you recover the filesystem on that branch.
 
 Notes: for illustrative purpose, the number of nodes per branch
 is much shorter than what it would really be, but this illustrates
 the connections between the archive files and their metadata as the
 archive is incremented. To obtain the graph for a level less than 3,
-truncate the desired number of rows from the bottom, and add an x
+truncate the desired number of rows from the top, and add a
 to ever solo o on the new bottom row.
 ```
 
