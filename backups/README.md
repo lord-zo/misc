@@ -34,5 +34,48 @@ The easiest way to automate the backups in WSL is to use
 the Windows Task Scheduler to run the script using the 
 `wsl` command on a daily basis.
 
+# Implementation
+
+The archive created by `backup.sh` has a graph-like structure.
+Here is an ascii drawing of what the file structure roughly looks like:
+
+```
+x is a .tar file
+o is a .snar file with metadata about the archive
+xo is a pair of .tar and .snar files created the same day
+_/-|\^>< are lines or connectors to draw the graph
+
+| Level |                Archive structure                     |
+| ----- | >-------------------> Time >-------------------> ... |
+| 0     |    x->x->x   x->x   x->x  x->x   x->x   x->x   x ... |
+|       |    |         |      |     |      |      |      | ... |
+| 1     |  o-^      xo-^   xo-^   o-^   xo-^    o-^   xo-^ ... |
+|       |  |        |      |      |     |       |     |    ... |
+| 2     |  o--------^------^      xo----^       o-----^--> ... |
+|       |  |                      |             |          ... |
+| 3     | xo----------------------^            xo--------> ... |
+| ----- | >-------------------> Time >-------------------> ... |
+
+Notes: for illustrative purpose, the number of nodes per branch
+is much shorter than what it would really be, but this illustrates
+the connections between the archive files and their metadata as the
+archive is incremented. To obtain the graph for a level less than 3,
+truncate the desired number of rows from the bottom, and add an x
+to ever solo o on the new bottom row.
+```
+
+The scripts only provide an implementation of (up to) 3-level backups
+because anything more seems unlikely for personal file backups.
+Here is a table showing the frequency of backups made by scripts of each level.
+
+```
+| Level | Frequency of full backups |
+| ----- | ------------------------- |
+| 0     | Daily                     |
+| 1     | Weekly                    |
+| 2     | Monthly                   |
+| 3     | Yearly                    |
+```
+
 # Inspiration
 - https://stephenreescarter.net/automatic-backups-for-wsl2/
