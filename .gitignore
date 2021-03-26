@@ -22,5 +22,7 @@
 *.blg
 *.bcf
 *.run.xml
-## Backup conf files
+## Backup conf, recovery, deletion files
+backup_*.txt
 backup_*.conf
+
