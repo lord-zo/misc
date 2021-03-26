@@ -22,3 +22,5 @@
 *.blg
 *.bcf
 *.run.xml
+## Backup conf files
+backup_*.txt

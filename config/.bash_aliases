@@ -10,6 +10,6 @@ alias python=python3
 alias venv="python3 -m venv"
 # ---create aliased windows directories (WSL)---
 alias win='cd /mnt/c/Users/lxvm/'
-alias doc='cd /mnt/c/Users/lxvm/OneDrive/Documents/'
+alias doc='cd /mnt/c/Users/lxvm/Documents/'
 alias cls='cd /mnt/c/Users/lxvm/Documents/_current/'
 alias x='cd /mnt/c/Users/lxvm/Documents/LaTeX'
