@@ -15,8 +15,8 @@ Options:
 Details:
 When called without arguments, performs an incremental backup of
 files in backup_files.txt, excluding patterns in backup_ignore.txt.
-Specify the backup directory in a file called backup_destination.txt.
-To configure the frequency/level of full backups, edit the script directly.
+Specify the backup directory in a backup_destination.txt.
+To configure the frequency/level of full backups, edit backup_configuration.txt.
 "
 
 if [ "$1" = "-h" ]
@@ -29,11 +29,8 @@ then
 fi
 
 # Configurable
-LEVEL=3
-PREFIX=archive
-BACKUP_DEST="./backup_destination.txt"
-BACKUP_FILE="./backup_files.txt"
-BACKUP_IGNR="./backup_ignore.txt"
+. ./backup.conf.sh
+. ./backup.read.conf.sh
 
 # Background
 
@@ -77,37 +74,6 @@ then
 elif [ $LEVEL -gt 3 ]
 then
     echo "This script does not have a rule for level > 3 backups. Exiting"
-    exit 0
-fi
-
-# Create backup data files if not present
-if [ -s "$BACKUP_DEST" ]
-then
-    BACKUP_DEST=`cat "$BACKUP_DEST"`
-else
-    if [ ! -f "$BACKUP_DEST" ]
-    then
-        touch "$BACKUP_DEST"
-    fi
-    echo "No backup path in $BACKUP_DEST. Exiting"
-    echo "For help use the '-h' flag"
-    exit 0
-fi
-
-if [ ! -f "$BACKUP_FILE" ]
-then
-    touch "$BACKUP_FILE"
-fi
-
-if [ ! -f "$BACKUP_IGNR" ]
-then
-    touch "$BACKUP_IGNR"
-fi
-
-if [ ! -s "$BACKUP_FILE" ]
-then
-    echo "$BACKUP_FILE is empty, so nothing to back up. Exiting"
-    echo "For help use the '-h' flag"
     exit 0
 fi
 
@@ -167,6 +133,7 @@ then
         read BOOL
         if [ ! "$BOOL" = "y" ]
         then
+            echo Exiting
             exit 0
         fi
     fi
