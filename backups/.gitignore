@@ -1,0 +1,5 @@
+## Backup conf, recovery, deletion files
+backup_*.log
+backup_*.conf
+## Testing directory
+testing/
