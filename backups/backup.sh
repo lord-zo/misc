@@ -4,33 +4,32 @@
 # By: Lorenzo Van Munoz
 # On: 26/03/2021
 
-USAGE="Usage: backup.sh [-h] [-y]
+USAGE="Usage: backup.sh [-h]
 
 Description: Incremental backup script with tar
 
 Options:
 -h  show this message and exit
--y  always save latest incremental changes to archive
 
 Details:
 When called without arguments, performs an incremental backup of
-files in backup_files.txt, excluding patterns in backup_ignore.txt.
-Specify the backup directory in a backup_destination.txt.
-To configure the frequency/level of full backups, edit backup_configuration.txt.
+files in backup_files.conf, excluding patterns in backup_ignore.conf.
+Specify the backup directory in a backup_destination.conf.
+To configure the frequency/level of full backups, edit backup_conf.sh.
 "
 
 if [ "$1" = "-h" ]
 then
     echo "$USAGE"
     exit 0
-elif [ "$1" = "-y" ]
-then
-    SAVE="$1"
 fi
 
 # Configurable
 . ./backup_conf.sh
 . ./backup_read_conf.sh
+
+# Import
+. ./backup_history_utils.sh
 
 # Background
 
@@ -42,22 +41,45 @@ fi
 #   3   Yearly
 
 # Extension Scheme
-# archive-L.YYYY.MM.W.D.snar
-# archive-L.YYYY.MM.W.D.I.tar
-# L is the level >= 0
+# archive.YYYY_MM_WW_D.I-L.snar
+# archive.YYYY_MM_WW_D.I-L.tar
 # YYYY is the 4-digit year
 # MM is the month of the year
-# W is the week of the year
+# WW is the week of the year
 # D is the day of the week
 # I in the ith increment per day
+# (which is meaningless for snar)
+# L is the level >= 0
 # .tar is a Tape ARchive file
 # .snar is a SNapshot ARchive file
+
+# Note:
+# This scheme will sort files by date,
+# increment, and then level so that
+# less sorting needs to be done later
+
+# Note:
 # A new week starts every Sunday
 # A month is every 4 weeks
-# Note: allowing increments per day
+
+# Note:
+# Allowing increments and snapshots per day
 # may be relevant if large files should
 # be backed up in real time or if there
-# is an urgent need to backup latest work
+# is an urgent need to backup latest work.
+# By configuring I, someone may be able to
+# create a backup rule for level L > 3 backups
+# which occur on a shorter-than-one-day basis.
+# To create longer-term leveled backups, consider
+# using the digits of the year for decade,
+# century, and millenial incremental backups.
+# Some set of rules needs to be imposed and this
+# script implements something reasonable
+
+# A value of L = 0 is a full backup
+# L = 1 backups are increments of L = 0 backups
+# ...
+# L = n backups are increments of L = n - 1 backups
 
 # To properly do multi-level backups, read the
 # manual page for tar, the --listed-incremental flag.
@@ -67,11 +89,12 @@ fi
 # (though that is the responsibility of another script)
 
 # Constrain LEVEL to described implementation
+N=3
 if [ $LEVEL -lt 0 ]
 then
     echo "Negative level backups cannot be made. Exiting"
     exit 0
-elif [ $LEVEL -gt 3 ]
+elif [ $LEVEL -gt $N ]
 then
     echo "This script does not have a rule for level > 3 backups. Exiting"
     exit 0
@@ -82,94 +105,113 @@ YEAR=`date +%Y`
 MONTH=`date +%m`
 WEEK=`date +%U`
 DAY=`date +%w`
-DATE="$YEAR"."$MONTH"."$WEEK"."$DAY"
+DATE="$YEAR"_"$MONTH"_"$WEEK"_"$DAY"
 
-# Make patterns using the only POSIX shell array - the argument list
-set -- \
-"$PREFIX"-1."$YEAR"."$MONTH"."$WEEK".*.snar \
-"$PREFIX"-2."$YEAR"."$MONTH".*.snar \
-"$PREFIX"-3."$YEAR".*.snar
-
-# Decide what is the lowest level needing backup
-# Create a .snar when there is none that is up-to-date
-# Choose an existing .snar when it is there
-
-# Default level 0 behavior
-BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"-0."$DATE".0.tar
-# For higher levels find an appropriate snar
-i=1
-while [ $i -le $LEVEL ]
-do
-    PATTERN=`eval echo \$"$i"`
-    if [ -z `ls "$BACKUP_DEST" | grep "$PATTERN"` ]
-    then # No up-to-date .snar was found at this level
-        if [ $i -eq $LEVEL ]
-        then # create full backup
-            BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"-"$i"."$DATE".0.tar
-            BACKUP_SNAR="$BACKUP_DEST"/"$PREFIX"-"$i"."$DATE".snar
-            break
-        # else continue through loop
-        fi
-    else # Use available .snar
-        BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"-$(($i - 1))."$DATE".0.tar
-        BACKUP_SNAR="$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$PATTERN" | tail -1`
-        break
-    fi
-
-    i=$(($i + 1))
-done
-
-# Check if a backup for today already exists.
-# Because when a .snar is created the same day
-# as a .tar causes the level of BACKUP_ARXV
-# to decrease by 1, this case must be addressed
-# by checking if there is a .tar from today with
-# the same level as the identified .snar
-if [ -f "$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$DATE".*.tar | tail -1` ]
+if [ $LEVEL -eq 0 ]
 then
-    if [ ! "$SAVE" = "-y" ]
+    # choose name
+    BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-0.tar
+
+    # ask for input if name is already taken
+    if [ -f "$BACKUP_ARXV" ]
     then
-        echo "A backup from today already exists. Save changes to archive? [y/N]"
-        read BOOL
-        if [ ! "$BOOL" = "y" ]
+        echo "A backup from today already exists. Overwrite [y] or save [s] another backup? [y/s/N]" 1>&2
+        read input
+        if [ "$input" = "y" ]
         then
-            echo Exiting
+            BACKUP_ARXV="$BACKUP_ARXV"
+        elif [ "$input" = "s" ]
+        then
+            BACKUP_ARXV=`increment "$BACKUP_ARXV"`
+        else
+            echo Exiting 1>&2
             exit 0
         fi
     fi
 
-    if [ $LEVEL -gt 0 ]
-        then # Increase increment counter
-            while [ -f "$BACKUP_ARXV" ]
-            do
-                i=`echo "$BACKUP_ARXV" | sed -E 's/.+\.([0-9]+)\.tar/\1/'`
-                BACKUP_ARXV=`echo "$BACKUP_ARXV" | sed -E "s/[0-9]+\.tar$/$(($i + 1)).tar/"`
-            done
-    fi
-    echo Incrementing archive
-fi
+    # make (full) backup
+    tar -c -P \
+        -f "$BACKUP_ARXV" \
+        -X "$BACKUP_IGNR" \
+        -T "$BACKUP_FILE"
 
-# Make today's backup
-if [ "$BACKUP_SNAR" ]
+elif [ $LEVEL -gt 0 ]
 then
+    # Make patterns using the only shell array - the argument list
+    set -- \
+    "$PREFIX"."$YEAR" \
+    "$PREFIX"."$YEAR"_"$MONTH" \
+    "$PREFIX"."$YEAR"_"$MONTH"_"$WEEK"
+
+    # Figure out the oldest thing to back up starting from lowest level of archive
+    i=0
+    while [ $i -le $(($N - $LEVEL)) ]
+    do # The offset of $i to $N - $LEVEL means correct pattern & frequency
+        i=$(($i + 1)) # This means the current level of backup
+        SNAR_PATTERN=`eval echo \$"$(($i + $N - $LEVEL))"`*.[0-9]*-"$i".snar
+        if [ $i -gt 1 ]
+        then
+            LLVL_PATTERN=`eval echo \$"$(($i + $N - $LEVEL))"`*.[0-9]*-"$(($i - 1))".snar
+            PREV_PATTERN=`eval echo \$"$(($i - 1 + $N - $LEVEL))"`*.[0-9]*-"$(($i - 1))".snar
+        fi
+        if [ `ls "$BACKUP_DEST" | grep "$SNAR_PATTERN"` ]
+        then # an up-to-date .snar is available
+            if [ $i -eq $LEVEL ]
+            then # The highest level is reached, so use the .snar
+                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$i.tar
+                BACKUP_SNAR="$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$SNAR_PATTERN" | tail -1`
+            else # There may be a .snar at a higher level
+                continue
+            fi
+        else # no up-to-date .snar is available at this level, so go down
+            if [ $i -eq 1 ]
+            then # there is no valid full backup, so create one (cannot recover from this
+                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-0.tar
+                BACKUP_SNAR="$BACKUP_DEST"/"$PREFIX"."$DATE".0-1.snar
+            elif [ `ls "$BACKUP_DEST" | grep "$LLVL_PATTERN"` ]
+            then # move up a level because a lower level .snar is in
+            # current level time window
+            # This is also a layer of redundancy
+                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$i.tar
+                BACKUP_SNAR="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$i.snar
+                cp "$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$LLVL_PATTERN" | tail -1` "$BACKUP_SNAR"
+            else # Increment the lower level since the timeframe for this level has past
+                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$(($i - 1)).tar
+                BACKUP_SNAR="$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$PREV_PATTERN" | tail -1`
+            fi
+            break
+        fi
+    done
+
+    # ask for input if name is already taken
+    if [ -f "$BACKUP_ARXV" ]
+    then
+        echo "A backup from today already exists. Increment archive? [y/N]" 1>&2
+        read input
+        if [ "$input" = "y" ]
+        then
+            BACKUP_ARXV=`increment "$BACKUP_ARXV"`
+        else
+            echo Exiting 1>&2
+            exit 0
+        fi
+    fi
+
+    # make backup (full or incremental)
     tar -c -P \
         -g "$BACKUP_SNAR" \
         -f "$BACKUP_ARXV" \
         -X "$BACKUP_IGNR" \
         -T "$BACKUP_FILE"
-else # Level 0 behavior (every day a full backup)
-    tar -c -P \
-        -f "$BACKUP_ARXV" \
-        -X "$BACKUP_IGNR" \
-        -T "$BACKUP_FILE"
-fi
 
-# Make copies of lower-level backups
-SNAR_LEVEL=`echo "$BACKUP_SNAR" | sed -E "s@$BACKUP_DEST/$PREFIX-([0-9]+)\.$DATE\.snar@\1@"`
-while [ $SNAR_LEVEL -gt 1 ]
-do
-    SNAR_LEVEL=$(($SNAR_LEVEL - 1))
-    cp "$BACKUP_SNAR" `echo "$BACKUP_SNAR" | sed -E "s/-([0-9]+)\./-$SNAR_LEVEL./"`
-done
+    # If went up a level, but not at top or bottom, copy the metadata up a level
+    SNAR_LEVEL=`file_level "$BACKUP_SNAR"`
+    if [ $SNAR_LEVEL -ne $LEVEL -a $SNAR_LEVEL -ne 1 ]
+    then # not at top or at bottom
+        cp \
+            "$BACKUP_SNAR" \
+            ${BACKUP_SNAR%%[0-9]*.snar}$(($SNAR_LEVEL + 1)).snar
+    fi
+fi
 
 exit 0

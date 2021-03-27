@@ -38,6 +38,7 @@ TODO:
 The easiest way to automate the backups in WSL is to use
 the Windows Task Scheduler to run the script using the 
 `wsl` command on a daily basis.
+If you try to make backups more frequently, the script asks for your input.
 
 # Implementation
 
@@ -45,37 +46,48 @@ The archive created by `backup.sh` has a graph-like structure.
 Here is an ascii drawing of what the file structure roughly looks like:
 
 ```
-x is a .tar file
-o is a .snar file with metadata about the archive
--|^ are branches in the graph which indicate dependencies
+x is a .tar (Tape ARchive) file
+o is a .snar (SNapshot ARchive) file with metadata about the archive
+-| are branches in the graph which indicate dependencies
 Symbols in the same column are created at the same time
 
-| Level |                Archive structure                      |
-| ----- | >-------------------> Time >--------------------> ... |
-| 3     |   x x x   x x   x x   x x   x x   x x   x x x     ... |
-|       | o-^-^-^ o-^-^ o-^-^ o-^-^ o-^-^ o-^-^ o-^-^-^ o-> ... |
-| 2     | |       x     x     |     x     |     x       x   ... |
-|       | o-------^-----^     o-----^     o-----^-------^   ... |
-| 1     | |                   x           |                 ... |
-|       | o-------------------^           o---------------> ... |
-| 0     | x                               x                 ... |
-| ----- | >-------------------> Time >--------------------> ... |
+| Level |                    Archive structure                     |
+| ----- | ... >-------------------> Time >-------------------> ... |
+|       | ...                                                  ... |
+|   3   | ...     o-x o-x-x o-x-x   o-x o-x-x     o-x-x-x o-x- ... |
+|       | ...     |   |     |       |   |         |       |    ... |
+|   2   | ...   o-x---x-----x     o-x---x       o-x-------x--- ... |
+|       | ...   |                 |             |              ... |
+|   1   | ... o-x-----------------x           o-x------------- ... |
+|       | ... |                               |                ... |
+|   0   | ... x                               x                ... |
+|       | ...                                                  ... |
+| ----- | ... >-------------------> Time >-------------------> ... |
+
+Note: the script is smart enough to repair some missing nodes,
+except for N=0 when it is not possible to recover metadata.
 
 Note: when you follow a branch down and left, and extract in reverse
 order (from bottom left to top right) all the archives (x's) indicated by
-^ symbols along that branch, you recover the filesystem on that branch.
+^ and ' symbols along that branch, you recover the filesystem on that branch.
 
-Notes: for illustrative purpose, the number of nodes per branch
-is much shorter than what it would really be, but this illustrates
-the connections between the archive files and their metadata as the
-archive is incremented. To obtain the graph for a level less than 3,
-truncate the desired number of rows from the top, and add a
-to ever solo o on the new bottom row.
+Note: a snapshot "o" at level N>1 is a copy of a snapshot at level N-1
+after making the level N-1 archive with the level N-1 snapshot. 
+If N=1 was created with the full archive (level 0) or if N>1.
+Thus a level N snapshot provides metadata for level N archives.
+
+Note: for illustrative purposes, the number of nodes per branch
+is much inconsistent per level and shorter than what it would be,
+but this illustrates the connections between the archive files and 
+their metadata as the archive is incremented. 
+To obtain the graph for a level N-M, truncate the rows for levels 
+N, N-1, ..., to N-M+1 from the graph.
 ```
 
 The scripts only provide an implementation of (up to) 3-level backups
 because anything more seems unlikely for personal file backups.
-Here is a table showing the frequency of backups made by scripts of each level.
+Here is a table showing the frequency of backups made by the scripts
+when the level parameter is set to a particular value:
 
 ```
 | Level | Frequency of full backups |
