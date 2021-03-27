@@ -2,7 +2,7 @@
 
 # backup.sh
 # By: Lorenzo Van Munoz
-# On: 26/03/2021
+# On: 27/03/2021
 
 USAGE="Usage: backup.sh [-h]
 
@@ -24,12 +24,10 @@ then
     exit 0
 fi
 
-# Configurable
-. ./backup_conf.sh
-. ./backup_read_conf.sh
+cd `dirname $0`
 
 # Import
-. ./backup_history_utils.sh
+. ./backup_brains.sh
 
 # Background
 
@@ -88,29 +86,13 @@ fi
 # files can be retrieved to restore the file system
 # (though that is the responsibility of another script)
 
-# Constrain LEVEL to described implementation
-N=3
-if [ $LEVEL -lt 0 ]
-then
-    echo "Negative level backups cannot be made. Exiting"
-    exit 0
-elif [ $LEVEL -gt $N ]
-then
-    echo "This script does not have a rule for level > 3 backups. Exiting"
-    exit 0
-fi
-
-# Get dates
-YEAR=`date +%Y`
-MONTH=`date +%m`
-WEEK=`date +%U`
-DAY=`date +%w`
-DATE="$YEAR"_"$MONTH"_"$WEEK"_"$DAY"
+# Get date
+DATE=`date +%Y_%m_%U_%w`
 
 if [ $LEVEL -eq 0 ]
 then
     # choose name
-    BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-0.tar
+    BACKUP_ARXV="${BACKUP_DEST}/${PREFIX}.${DATE}.0-0.tar"
 
     # ask for input if name is already taken
     if [ -f "$BACKUP_ARXV" ]
@@ -137,51 +119,8 @@ then
 
 elif [ $LEVEL -gt 0 ]
 then
-    # Make patterns using the only shell array - the argument list
-    set -- \
-    "$PREFIX"."$YEAR" \
-    "$PREFIX"."$YEAR"_"$MONTH" \
-    "$PREFIX"."$YEAR"_"$MONTH"_"$WEEK"
 
-    # Figure out the oldest thing to back up starting from lowest level of archive
-    i=0
-    while [ $i -le $(($N - $LEVEL)) ]
-    do # The offset of $i to $N - $LEVEL means correct pattern & frequency
-        i=$(($i + 1)) # This means the current level of backup
-        SNAR_PATTERN=`eval echo \$"$(($i + $N - $LEVEL))"`*.[0-9]*-"$i".snar
-        if [ $i -gt 1 ]
-        then
-            LLVL_PATTERN=`eval echo \$"$(($i + $N - $LEVEL))"`*.[0-9]*-"$(($i - 1))".snar
-            PREV_PATTERN=`eval echo \$"$(($i - 1 + $N - $LEVEL))"`*.[0-9]*-"$(($i - 1))".snar
-        fi
-        if [ `ls "$BACKUP_DEST" | grep "$SNAR_PATTERN"` ]
-        then # an up-to-date .snar is available
-            if [ $i -eq $LEVEL ]
-            then # The highest level is reached, so use the .snar
-                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$i.tar
-                BACKUP_SNAR="$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$SNAR_PATTERN" | tail -1`
-            else # There may be a .snar at a higher level
-                continue
-            fi
-        else # no up-to-date .snar is available at this level, so go down
-            if [ $i -eq 1 ]
-            then # there is no valid full backup, so create one (cannot recover from this
-                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-0.tar
-                BACKUP_SNAR="$BACKUP_DEST"/"$PREFIX"."$DATE".0-1.snar
-            elif [ `ls "$BACKUP_DEST" | grep "$LLVL_PATTERN"` ]
-            then # move up a level because a lower level .snar is in
-            # current level time window
-            # This is also a layer of redundancy
-                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$i.tar
-                BACKUP_SNAR="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$i.snar
-                cp "$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$LLVL_PATTERN" | tail -1` "$BACKUP_SNAR"
-            else # Increment the lower level since the timeframe for this level has past
-                BACKUP_ARXV="$BACKUP_DEST"/"$PREFIX"."$DATE".0-$(($i - 1)).tar
-                BACKUP_SNAR="$BACKUP_DEST"/`ls "$BACKUP_DEST" | grep "$PREV_PATTERN" | tail -1`
-            fi
-            break
-        fi
-    done
+    choose_incr_backup $DATE
 
     # ask for input if name is already taken
     if [ -f "$BACKUP_ARXV" ]
@@ -204,14 +143,17 @@ then
         -X "$BACKUP_IGNR" \
         -T "$BACKUP_FILE"
 
-    # If went up a level, but not at top or bottom, copy the metadata up a level
-    SNAR_LEVEL=`file_level "$BACKUP_SNAR"`
-    if [ $SNAR_LEVEL -ne $LEVEL -a $SNAR_LEVEL -ne 1 ]
-    then # not at top or at bottom
+    # Make a copy for the snar available at the next level so that
+    # next time the script can go a level higher except at top or bottom
+    ARXV_LEVEL=`file_level "$BACKUP_ARXV"`
+    if [ $ARXV_LEVEL -ne $LEVEL -a $ARXV_LEVEL -ne 0 ]
+    then # Not at top or bottom
         cp \
             "$BACKUP_SNAR" \
-            ${BACKUP_SNAR%%[0-9]*.snar}$(($SNAR_LEVEL + 1)).snar
+            `raise_snar $DATE`
     fi
+
 fi
 
 exit 0
+

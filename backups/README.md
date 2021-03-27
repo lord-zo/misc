@@ -42,48 +42,6 @@ If you try to make backups more frequently, the script asks for your input.
 
 # Implementation
 
-The archive created by `backup.sh` has a graph-like structure.
-Here is an ascii drawing of what the file structure roughly looks like:
-
-```
-x is a .tar (Tape ARchive) file
-o is a .snar (SNapshot ARchive) file with metadata about the archive
--| are branches in the graph which indicate dependencies
-Symbols in the same column are created at the same time
-
-| Level |                    Archive structure                     |
-| ----- | ... >-------------------> Time >-------------------> ... |
-|       | ...                                                  ... |
-|   3   | ...     o-x o-x-x o-x-x   o-x o-x-x     o-x-x-x o-x- ... |
-|       | ...     |   |     |       |   |         |       |    ... |
-|   2   | ...   o-x---x-----x     o-x---x       o-x-------x--- ... |
-|       | ...   |                 |             |              ... |
-|   1   | ... o-x-----------------x           o-x------------- ... |
-|       | ... |                               |                ... |
-|   0   | ... x                               x                ... |
-|       | ...                                                  ... |
-| ----- | ... >-------------------> Time >-------------------> ... |
-
-Note: the script is smart enough to repair some missing nodes,
-except for N=0 when it is not possible to recover metadata.
-
-Note: when you follow a branch down and left, and extract in reverse
-order (from bottom left to top right) all the archives (x's) indicated by
-^ and ' symbols along that branch, you recover the filesystem on that branch.
-
-Note: a snapshot "o" at level N>1 is a copy of a snapshot at level N-1
-after making the level N-1 archive with the level N-1 snapshot. 
-If N=1 was created with the full archive (level 0) or if N>1.
-Thus a level N snapshot provides metadata for level N archives.
-
-Note: for illustrative purposes, the number of nodes per branch
-is much inconsistent per level and shorter than what it would be,
-but this illustrates the connections between the archive files and 
-their metadata as the archive is incremented. 
-To obtain the graph for a level N-M, truncate the rows for levels 
-N, N-1, ..., to N-M+1 from the graph.
-```
-
 The scripts only provide an implementation of (up to) 3-level backups
 because anything more seems unlikely for personal file backups.
 Here is a table showing the frequency of backups made by the scripts
@@ -96,6 +54,67 @@ when the level parameter is set to a particular value:
 | 1     | Weekly                    |
 | 2     | Monthly                   |
 | 3     | Yearly                    |
+```
+
+The archive created by `backup.sh` has a graph-like structure.
+Here is an ascii drawing of what the file structure roughly looks like:
+
+```
+x is a .tar (Tape ARchive) file
+o is a .snar (SNapshot ARchive) file with metadata about the archive
+-| are branches in the graph which indicate dependencies
+Symbols in the same column are created at the same time
+
+| Level |                       Archive structure                         |
+| ----- | ... >----------------------> Time >-----------------------> ... |
+|       | ...                                                         ... |
+|   3   | ...      o-x-x-x o-x-x-x o-x-x-x   o-x-x-x o-x-x-x o-x-x-x  ... |
+|       | ...      |       |       |         |       |       |        ... |
+|   2   | ...    o-x-------x-------x       o-x-------x-------x        ... |
+|       | ...    |                         |                          ... |
+|   1   | ...  o-x-------------------------x                          ... |
+|       | ...  |                                                      ... |
+|   0   | ...  x                                                      ... |
+|       | ...                                                         ... |
+| ----- | ... >----------------------> Time >-----------------------> ... |
+
+```
+
+Note: when you follow a branch down and left, and extract in reverse
+order (from bottom left to top right) all the archives (x's) along that
+path, you recover the filesystem on that branch.
+
+Note: a snapshot "o" at level N>1 is a copy of a snapshot at level N-1
+after making the level N-1 archive with the level N-1 snapshot. 
+If N=1 was created with the full archive (level 0) or if N>1.
+Thus a level N snapshot provides metadata for level N archives.
+
+Note: for illustrative purposes, the number of nodes per branch
+is shorter than what it would be, but this illustrates the connections
+between the archive files and their metadata as the archive is incremented. 
+To obtain the graph for a level N-M archive, truncate the rows for levels 
+N, N-1, ..., to N-M+1 from the graph.
+
+Note: a test function `test_brains` is included in `backup_brains.sh`
+so you can verify that this works ahead of time.
+
+```
+$ . backup_brains.sh
+$ test_brains
+YYYY_MM_WW_D | 0 1 2 3 | I
+----date---- | -level- | -
+2020_01_00_0 | x o     | 1
+2020_01_00_1 |   x o   | 1
+2020_01_00_2 |     x o | 1
+2020_01_00_3 |       x | 1
+2020_01_00_4 |       x | 1
+2020_01_00_5 |       x | 1
+2020_01_00_6 |       x | 1
+2020_01_01_0 |     x o | 1
+2020_01_01_1 |       x | 1
+
+# Output Truncated here
+
 ```
 
 # Inspiration

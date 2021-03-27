@@ -2,11 +2,26 @@
 
 # backup_history_utils.sh
 # By: Lorenzo Van Munoz
-# On: 26/03/2021
+# On: 27/03/2021
 
 # The functions gather information about archive file names
 # and allow one to walk along the graph to find dependencies
 
+
+change_date () {
+    # Change the date of an archive file
+    # $1 should be a date in 'YYYY_MM_WW_D' format
+    # $2 should be an archive filename
+    echo `echo "$2" | sed -E "s@[0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{1}@$1@"`
+}
+
+raise_level () {
+    # Raise the level of an archive file
+    # $1 should be an archive filename
+    local level
+    level=`file_level "$1"`
+    echo `echo "$1" | sed -E "s@-$level\.@-$(($level + 1)).@"`
+}
 
 increment () {
     # Increases increment counter until the file name is new
@@ -23,14 +38,14 @@ increment () {
 file_level () {
     local level
     level=${1#*-}
-    level=${level%%.[snt]*ar}
+    level=${level%%\.[snt]*ar}
     echo $level
 }
 
 file_date () {
     local date
     date=${1#$PREFIX-[0-9]*.}
-    date=${date%.[snt]*ar}
+    date=${date%\.[snt]*ar}
     echo $date
 }
 
