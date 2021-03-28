@@ -26,7 +26,7 @@ choose_incr_backup () {
     # $2 is an optional directory (default $BACKUP_DEST)
     # Modifies global variables $BACKUP_ARXV, $BACKUP_SNAR as output
 
-    local i pattern_i pattern_i_1 pattern_1 pattern_2 pattern_3 tmp
+    local i pattern_i pattern_i_1 pattern_1 pattern_2 pattern_3 snars
 
     if [ ! -d "$2" ]
     then
@@ -37,7 +37,6 @@ choose_incr_backup () {
     pattern_1="${PREFIX}.${1%_*_*_*}"
     pattern_2="${PREFIX}.${1%_*_*}"
     pattern_3="${PREFIX}.${1%_*}"
-
     # Figure out the archive which should be incremented at the given day
     i=0
     while [ $i -lt $LEVEL ]
@@ -45,16 +44,17 @@ choose_incr_backup () {
         i=$(($i + 1))
         pattern_i=`eval echo \$\pattern_$(($i + $N - $LEVEL))`
         # The offset of $i to $N - $LEVEL means correct pattern & frequency
-        if [ `search_snar "$2" "$pattern_i" "$i"` ]
+        snars=`search_snar "$2" "$pattern_i" "$i"`
+        if [ "$snars" ]
         then
             # an up-to-date .snar is available
             if [ $i -eq $LEVEL ]
             then
                 # The highest level is reached, so use the .snar
-                tmp=`search_snar "$2" "$pattern_i" "$i"`
-                BACKUP_SNAR="${tmp}"
+                BACKUP_SNAR="$snars"
                 # Create today's archive at this level one increment higher
-                BACKUP_ARXV="${PREFIX}.${1}.${i}-00.tar"
+                BACKUP_ARXV=$(raise_incr `search_arxv "$2" "$pattern_i" "$i" "[0-9]{2}" | tail -1`)
+                BACKUP_ARXV="${PREFIX}.${1}.`file_li ${BACKUP_ARXV}`.tar"
             else
                 # There may be a .snar at a higher level
                 continue
@@ -69,10 +69,10 @@ choose_incr_backup () {
             else
                 # Select the existing lower-level snar
                 pattern_i_1=`eval echo \$\pattern_$(($i - 1 + $N - $LEVEL))`
-                tmp=`search_snar "$2" "$pattern_i_1" $(($i - 1))`
-                BACKUP_SNAR="${tmp}"
+                BACKUP_SNAR=`search_snar "$2" "$pattern_i_1" $(($i - 1))`
                 # Create this archive on lower level one increment higher
-                BACKUP_ARXV="${PREFIX}.${1}.$((${i} - 1))-00.tar"
+                BACKUP_ARXV=$(raise_incr `search_arxv "$2" "$pattern_i_1" $(($i - 1)) "[0-9]{2}" | tail -1`)
+                BACKUP_ARXV="${PREFIX}.${1}.`file_li ${BACKUP_ARXV}`.tar"
             fi
             break
         fi
