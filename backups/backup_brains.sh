@@ -2,7 +2,7 @@
 
 # backup_brains.sh
 # By: Lorenzo Van Munoz
-# On: 27/03/2021
+# On: 28/03/2021
 
 # These are the brains of the backup script
 # They are collected here so they can be tested
@@ -26,24 +26,19 @@ choose_incr_backup () {
     # $2 is an optional directory (default $BACKUP_DEST)
     # Modifies global variables $BACKUP_ARXV, $BACKUP_SNAR as output
 
-    local i pattern_i pattern_i_1 pattern_1 pattern_2 pattern_3 snars
+    local i pattern_i pattern_i_1 snars
 
     if [ ! -d "$2" ]
     then
         set -- "$1" "$BACKUP_DEST"
     fi
 
-    # Backup frequency patterns
-    pattern_1="${PREFIX}.${1%_*_*_*}"
-    pattern_2="${PREFIX}.${1%_*_*}"
-    pattern_3="${PREFIX}.${1%_*}"
     # Figure out the archive which should be incremented at the given day
     i=0
     while [ $i -lt $LEVEL ]
     do
         i=$(($i + 1))
-        pattern_i=`eval echo \$\pattern_$(($i + $N - $LEVEL))`
-        # The offset of $i to $N - $LEVEL means correct pattern & frequency
+        pattern_i=`pattern_date_level "$1" "$i"`
         snars=`search_snar "$2" "$pattern_i" "$i"`
         if [ "$snars" ]
         then
@@ -68,11 +63,17 @@ choose_incr_backup () {
                 BACKUP_SNAR="${PREFIX}.${1}.1-00.snar"
             else
                 # Select the existing lower-level snar
-                pattern_i_1=`eval echo \$\pattern_$(($i - 1 + $N - $LEVEL))`
+                pattern_i_1=`pattern_date_level "$1" $(($i - 1))`
                 BACKUP_SNAR=`search_snar "$2" "$pattern_i_1" $(($i - 1))`
                 # Create this archive on lower level one increment higher
                 BACKUP_ARXV=$(raise_incr `search_arxv "$2" "$pattern_i_1" $(($i - 1)) "[0-9]{2}" | tail -1`)
                 BACKUP_ARXV="${PREFIX}.${1}.`file_li ${BACKUP_ARXV}`.tar"
+                if [ `echo "$BACKUP_SNAR" | wc -w` -ne 1 ]
+                then
+                    # Multiple snars found
+                    echo "Error: Multiple snars found ${BACKUP_SNAR}" 1>&2
+                    return 1
+                fi
             fi
             break
         fi

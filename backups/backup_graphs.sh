@@ -2,82 +2,136 @@
 
 # backup_graphs.sh
 # By: Lorenzo Van Munoz
-# On: 27/03/2021
+# On: 28/03/2021
+
+. ./backup_utils.sh
 
 # Functions to help navigate the dependency graph
 
-find_next_tar () {
-    # Return an archive file guaranteed to move along the most recent branch
-    # $1 should be a .tar archive file
-    if [ `file_level` -eq 0 ]
+find_next_incr () {
+    # Return an archive file on the same level with the next increment
+    # If no such file exists, returns the original file
+    # $1 should be a directory
+    # $2 should be a .tar or .snar archive file
+    # $3 should be an integer number of increments to jump (e.g. 1, -1)
+    local incr=`file_incr "$2"`
+    local date=`file_date "$2"`
+    local level=`file_level "$2"`
+    local pattern=`pattern_date_level "$date" "$level"`
+    local test=$(search_tar "$1" "$pattern" "$level" $(($incr + $3)))
+    if [ "$test" ]
     then
-        # unless a same-day level 1 snar archive exists, stop here
-        if $(ls | grep -q "${PREFIX}\.`file_date ${1}`\.0-1\.snar")
-        then
-            echo $(ls | grep "${PREFIX}\.`file_date ${1}`\.0-1\.snar" | tail -1)
-            return 0
-        else
-            # STOP CONDITION
-            return
-        fi
-    elif [ ! `file_level` -eq $LEVEL ]
-    then
-        if true
-        then
-            return
-        fi
+        # Found files on the same level branch with next increment
+        return_uniq_result "$test" "Couldn't find unique increment ${3} for ${2}"
     else
-        # This is the top level
-        # Look for a tar archive at this level until the branch ends
-        echo Error: could not find the next most recent dependency 1>&2
-        exit 1
+        # Specified increment found, end of branch on this level
+        echo "$2"
     fi
 }
 
-find_next_snar () {
-    # Return an archive file guaranteed to move along the most recent branch
-    # $1 should be a .snar archive file
-    return
-}
-
-find_prev_tar () {
-    # Return the filename of the corresponding snar file or next tar increment
-    return
-}
-
-find_prev_snar () {
-    # Return the filename of the next file in the dependency tree
-    return
-}
-
-independent () {
-    # Returns 0 if the file is not a dependency, else 1
-    local test
-    if file_old "$1"
+find_next_level () {
+    # Return an archive file on the same day as input archive
+    # If .snar looks down a level, if .tar, looks up a level
+    # If no such file exists, returns the original file
+    # $1 should be a directory
+    # $2 should be a .tar or .snar archive file
+    local ext=`file_ext "$2"`
+    local date=`file_date "$2"`
+    local level=`file_level "$2"`
+    if [ "$ext"` = "tar" ]
     then
-        # need to decide if the given file is needed to recover a file that is not old
-        test="$1"
-        while file_old "$test"
-        do
-            # propose a newer file dependent on this one
-            # if it's a .snar look for the next level lower .snar else 1st dependent .tar
-            # if it's a .tar
-
-            if `echo "$1" | grep -q .tar`
-            then
-                if [ `file_day "$test"` = "06" ]
-                then
-                    return 0
-                else
-                    test=`find_next_tar "$test"`
-                fi
-            elif `echo "$1" | grep -q .snar`
-            then
-                test=`find_next_snar "$test"`
-            fi
-            break
-        done
+        # Look up a level for a same-day .snar one level higher
+        local test=$(search_snar "$1" "$date"` $(("$level"` + 1)))
+        if [ "$test" ]
+        then
+            # Found a higher level .snar
+            return_uniq_result "$test" "Couldn't find unique next level for ${2}"
+        else
+            # Reached highest level
+            echo "$2"
+        fi
+    elif [ "$ext" = "snar" ]
+    then
+        # Look down for a same-day, lower-level tar
+        local test=$(search_tar "$1" "$date"` $(("$level"` - 1)) | tail -1)
+        if [ "$test" ]
+        then
+            # Found a lower level .tar
+            return_uniq_result "$test" "Couldn't find unique next level for ${2}"
+        else
+            # Reached highest level
+            echo "Error: snapshot ${2} has no same-day source tar" 1>&2
+            return 1
+        fi
     else
+        echo "Error: ${2} is not an archive file" 1>&2
         return 1
     fi
+}
+
+find_next_arxv () {
+    # Return an archive file guaranteed to move along the most recent branch
+    # If no such file exists, returns the original file
+    # $1 should be a directory
+    # $2 should be a .tar or .snar archive file
+    test_level=`find_next_level "$1" "$2"`
+    test_incr=`find_next_incr "$1" "$2"`
+    if [ "$test_level" != "$2" ]
+    then
+        # Move along level towards newest files
+        echo "$test_level"
+    elif [ "$test_incr" != "$2" ]
+    then
+        # Move up a level when cannot continue along that level
+        echo "$test_incr"
+    else
+        # Reached end of branch
+        echo "$2"
+    fi
+}
+
+find_prev_arxv () {
+    # Return an archive file guaranteed to move back down the branch
+    # If no such file exists, returns the original file
+    # $1 should be a directory
+    # $2 should be a .tar or .snar archive file
+    test_level=`find_next_level "$1" "$2"`
+    test_incr=`find_next_incr "$1" "$2" "-1"`
+    if [ "$test_incr" != "$2" ]
+    then
+        # Move along level towards older files
+        echo "$test_level"
+    elif [ "$test_level" != "$2" -a `file_ext "$2"` = "snar" ]
+    then
+        # Move down a level when cannot continue along that level
+        echo "$test_level"
+    else
+        # Reached end / source of archive
+        echo "$2"
+    fi
+}
+
+find_recovery_arxv () {
+    # Returns all the archives needed to restore the input states
+    # $1 should be a directory
+    # $2 should be a .tar archive file
+    local test="$2"
+    local prev
+    while [ "$test" != "$prev" ]
+    do
+        if [ `file_ext $test` = "tar" ]
+        then
+            echo "$test"
+        fi
+        prev="$test"
+        test=`find_prev_arxv "$1" "$prev"`
+    done
+}
+
+find_old_arxv () {
+    # Returns all the archives not needed to recover files created after date
+    # $1 should be a directory
+    # $2 should be a date in %Y_%m_%U_%w format
+    return
+    # This should make a call to find_recovery_arxv and perform a grep -v
 }

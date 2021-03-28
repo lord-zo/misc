@@ -2,7 +2,7 @@
 
 # backup_history_utils.sh
 # By: Lorenzo Van Munoz
-# On: 27/03/2021
+# On: 28/03/2021
 
 # The functions gather information about archive file names
 # (which have a $PREFIX.YYYY_MM_WW_D.L-II.\(snar\)\|\(tar\) format)
@@ -16,6 +16,37 @@ alias filter_archive="grep -E '${PREFIX}\.[0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]\.[0-9
 alias filter_date="sed -E 's@${PREFIX}\.([0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]).*\.(tar|snar)\$@\1@'"
 alias filter_level="sed -E 's@.+\.([0-9])-[0-9]{2}\.(tar|snar)\$@\1@'"
 alias filter_incr="sed -E 's@.+\.[0-9]-([0-9]{2})\.(tar|snar)\$@\1@'"
+
+pattern_date_level () {
+    # Returns a pattern to use to filter up-to-date files of the same level
+    # Note that getting the frequency right depends on $N and $LEVEL
+    # $1 should be a date in %Y_%m_%U_%w format
+    # $2 should be a digit level (implemented 1-3)
+    # Offset by $i to $N - $LEVEL means correct pattern
+    # to ensure that the $LEVEL backups occur daily
+    if [ ! $2 -ge 1 -a $2 -le $LEVEL ]
+    then
+        echo "Error: selected level ${2} not implemented" 1>&2
+        return 1
+    fi
+
+    if [ $2 -eq $LEVEL ]
+    then
+        # Daily backup pattern -- lifetime of 1 week
+        echo "${PREFIX}.${1%_*}"
+    elif [ $2 -eq $(($LEVEL - 1)) ]
+    then
+        # Weekly backup pattern -- lifetime of 1 month
+        echo "${PREFIX}.${1%_*_*}"
+    elif [ $2 -eq $(($LEVEL - 2)) ]
+    then
+        # Monthly backup pattern -- lifetime of 1 year
+        echo "${PREFIX}.${1%_*_*_*}"
+    else
+        echo "Error: selected level ${2} not implemented" 1>&2
+        return 1
+    fi
+}
 
 file_prefix () {
     # $1 should be an archive filename without dirname
@@ -188,4 +219,20 @@ search_snar () {
     # $2 should be a ERE pattern
     # $3 should be a digit level or ERE
     search_arxv "$1" "$2" "$3" "[0-9]{2}" | grep "snar$"
+}
+
+return_uniq_result () {
+    # Returns the result of a search if it is unique, otherwise error
+    # $1 should be a search result
+    # $2 is an optional error message
+    if [ $(echo "$1" | wc -w) -eq 1 ]
+    then
+        # Return the unique file
+        echo "$1"
+    else
+        # Found multiple files with the same increment
+        echo "Error: ${2}" 1>&2
+        echo "Error: Search yielded: ${1}" 1>&2
+        return 1
+    fi
 }

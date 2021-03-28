@@ -3,7 +3,7 @@
 # backup_clean.sh
 
 # By: Lorenzo Van Munoz
-# On: 27/03/2021
+# On: 28/03/2021
 
 USAGE="Usage: backup_clean.sh [-h] OPTION NUMBER
 
@@ -62,21 +62,11 @@ else
     fi
 fi
 
-. ./backup_conf.sh
-. ./backup_read_conf.sh
-. ./backup_history_utils.sh
+. ./backup_graphs.sh
 
-touch ./backup_delete.log
-echo > ./backup_delete.log
-
-for i in `ls "$BACKUP_DEST" | grep .[snt]*ar`
-do
-    if independent "$i"
-    then
-        echo "$i" >> ./backup_delete.log
-    fi
-done
-
-cat ./backup_delete.log #| xargs -i rm {}
+BACKUP_DLOG="./backup_delete.log"
+touch "$BACKUP_DLOG"
+find_old_arxv "$BACKUP_DEST" "$DAYS" > "$BACKUP_DLOG"
+cat "$BACKUP_DLOG" | xargs -i rm {}
 
 exit 0
