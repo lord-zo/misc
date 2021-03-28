@@ -39,21 +39,21 @@ cd `dirname $0`
 #   3   Yearly
 
 # Extension Scheme
-# archive.YYYY_MM_WW_D.I-L.snar
-# archive.YYYY_MM_WW_D.I-L.tar
+# archive.YYYY_MM_WW_D.L-II.snar
+# archive.YYYY_MM_WW_D.L-II.tar
 # YYYY is the 4-digit year
 # MM is the month of the year
 # WW is the week of the year
 # D is the day of the week
-# I in the ith increment per day
-# (which is meaningless for snar)
 # L is the level >= 0
+# I in the ith increment per level
+# (00 for snar, 01-99 for tars)
 # .tar is a Tape ARchive file
 # .snar is a SNapshot ARchive file
 
 # Note:
 # This scheme will sort files by date,
-# increment, and then level so that
+# level, then increment so that
 # less sorting needs to be done later
 
 # Note:
@@ -92,7 +92,7 @@ DATE=`date +%Y_%m_%U_%w`
 if [ $LEVEL -eq 0 ]
 then
     # choose name
-    BACKUP_ARXV="${BACKUP_DEST}/${PREFIX}.${DATE}.0-0.tar"
+    BACKUP_ARXV="${BACKUP_DEST}/${PREFIX}.${DATE}.0-00.tar"
 
     # ask for input if name is already taken
     if [ -f "$BACKUP_ARXV" ]
@@ -104,7 +104,7 @@ then
             BACKUP_ARXV="$BACKUP_ARXV"
         elif [ "$input" = "s" ]
         then
-            BACKUP_ARXV=`increment "$BACKUP_ARXV"`
+            BACKUP_ARXV=`raise_incr "$BACKUP_ARXV"`
         else
             echo Exiting 1>&2
             exit 0
@@ -119,22 +119,7 @@ then
 
 elif [ $LEVEL -gt 0 ]
 then
-
     choose_incr_backup $DATE
-
-    # ask for input if name is already taken
-    if [ -f "$BACKUP_ARXV" ]
-    then
-        echo "A backup from today already exists. Increment archive? [y/N]" 1>&2
-        read input
-        if [ "$input" = "y" ]
-        then
-            BACKUP_ARXV=`increment "$BACKUP_ARXV"`
-        else
-            echo Exiting 1>&2
-            exit 0
-        fi
-    fi
 
     # make backup (full or incremental)
     tar -c -P \
@@ -150,9 +135,8 @@ then
     then # Not at top or bottom
         cp \
             "$BACKUP_SNAR" \
-            `raise_snar $DATE`
+            `raise_snar "$BACKUP_SNAR" "$DATE"`
     fi
-
 fi
 
 exit 0

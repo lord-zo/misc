@@ -7,9 +7,7 @@
 # These are the brains of the backup script
 # They are collected here so they can be tested
 
-. ./backup_conf.sh
-. ./backup_read_conf.sh
-. ./backup_history_utils.sh
+. ./backup_utils.sh
 
 N=3
 # Constrain LEVEL to actual implementation
@@ -28,103 +26,145 @@ choose_incr_backup () {
     # $2 is an optional directory (default $BACKUP_DEST)
     # Modifies global variables $BACKUP_ARXV, $BACKUP_SNAR as output
 
-    local i p1 p2 p3 snar_pattern llvl_pattern prev_pattern
+    local i pattern_i pattern_i_1 pattern_1 pattern_2 pattern_3 tmp
 
     if [ ! -d "$2" ]
     then
         set -- "$1" "$BACKUP_DEST"
     fi
 
-    # backup frequency patterns
-    p1="${PREFIX}.${1%_*_*_*}"
-    p2="${PREFIX}.${1%_*_*}"
-    p3="${PREFIX}.${1%_*}"
+    # Backup frequency patterns
+    pattern_1="${PREFIX}.${1%_*_*_*}"
+    pattern_2="${PREFIX}.${1%_*_*}"
+    pattern_3="${PREFIX}.${1%_*}"
 
-    # Figure out the oldest thing to back up starting from lowest level of archive
+    # Figure out the archive which should be incremented at the given day
     i=0
     while [ $i -lt $LEVEL ]
-    do # The offset of $i to $N - $LEVEL means correct pattern & frequency
-        i=$(($i + 1)) # This means the current level of backup
-
-        snar_pattern=`eval echo \$\p$((${i} + ${N} - ${LEVEL}))`"[_0-9.]*-${i}.snar"
-
-        if [ `ls "$2" | grep "$snar_pattern"` ]
-        then # an up-to-date .snar is available
+    do
+        i=$(($i + 1))
+        pattern_i=`eval echo \$\pattern_$(($i + $N - $LEVEL))`
+        # The offset of $i to $N - $LEVEL means correct pattern & frequency
+        if [ `search_snar "$2" "$pattern_i" "$i"` ]
+        then
+            # an up-to-date .snar is available
             if [ $i -eq $LEVEL ]
-            then # The highest level is reached, so use the .snar
-                BACKUP_ARXV="${2}/${PREFIX}.${1}.0-${i}.tar"
-                BACKUP_SNAR="${2}/`ls ${2} | grep ${snar_pattern} | tail -1`"
-            else # There may be a .snar at a higher level
+            then
+                # The highest level is reached, so use the .snar
+                tmp=`search_snar "$2" "$pattern_i" "$i"`
+                BACKUP_SNAR="${tmp}"
+                # Create today's archive at this level one increment higher
+                BACKUP_ARXV="${PREFIX}.${1}.${i}-00.tar"
+            else
+                # There may be a .snar at a higher level
                 continue
             fi
-        else # no up-to-date .snar is available at this level, so go down
+        else
+            # no up-to-date .snar is available so return a level
             if [ $i -eq 1 ]
-            then # there is no valid full backup, so create one (cannot recover from this
-                BACKUP_ARXV="${2}/${PREFIX}.${1}.0-0.tar"
-                BACKUP_SNAR="${2}/${PREFIX}.${1}.0-1.snar"
-            else # Increment the lower level since the timeframe for this level has past
-                prev_pattern=`eval echo \$\p$((${i} - 1 + ${N} - ${LEVEL}))`"[_0-9.]*-$((${i} - 1))".snar
-                BACKUP_ARXV="${2}/${PREFIX}.${1}.0-$((${i} - 1)).tar"
-                BACKUP_SNAR="${2}/`ls ${2} | grep ${prev_pattern} | tail -1`"
+            then
+                # Create a full backup
+                BACKUP_ARXV="${PREFIX}.${1}.0-00.tar"
+                BACKUP_SNAR="${PREFIX}.${1}.1-00.snar"
+            else
+                # Select the existing lower-level snar
+                pattern_i_1=`eval echo \$\pattern_$(($i - 1 + $N - $LEVEL))`
+                tmp=`search_snar "$2" "$pattern_i_1" $(($i - 1))`
+                BACKUP_SNAR="${tmp}"
+                # Create this archive on lower level one increment higher
+                BACKUP_ARXV="${PREFIX}.${1}.$((${i} - 1))-00.tar"
             fi
             break
         fi
     done
 }
 
-raise_snar () {
-    # Raise the snar a level
-    # $1 should be a date
-    echo $(change_date "$1" `raise_level "$BACKUP_SNAR"`)
-}
-
 draw_arxv () {
-    # Optionally accepts a directory as $1
-    local msg l0 l1 l2 l3 incr i j
+    # Print a graphical representation of the archive structure to console
+    # $1 is an optional directory (default: $BACKUP_DEST)
+    # $2 is an optional file whose lines are archive files to be emphasized
+    local date l0 l1 l2 l3 incr tars snars i j tars_hl snars_hl mark
+
     if [ ! -d "$1" ]
     then
         set "$BACKUP_DEST"
     fi
-    echo "YYYY_MM_WW_D | 0 1 2 3 | I" 1>&2
-    echo "----date---- | -level- | -" 1>&2
-    for i in `ls "$1" | \
-    grep -E "${PREFIX}\.[0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]\.[0-9]*-[0-9]\.[snt]{1,2}ar" | \
-    sed -E "s@(${PREFIX}\.[0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]).*@\1@" | \
-    uniq`
+
+    # Print column headers
+    echo "| YYYY_MM_WW_D | 0 1 2 3 | II |" 1>&2
+    echo "| ----date---- | -level- | -- |" 1>&2
+
+    # Find all archive files with a unique date
+    for i in `ls "$1" | filter_archive | filter_date | uniq`
     do
-        # Print one line per day
-        # Get day
-        msg=${i#$PREFIX\.}
-        # Collect other variables to print
-        l0=" "
-        l1=" "
-        l2=" "
-        l3=" "
-        incr=0
-        for j in `ls "$1" | grep "$i" | sed -E "s@.+-([0-9]*)\.[snt]{1,2}ar@\1@" | uniq`
+        # Print one line of information per day
+        date="$i"
+        l0=" "; l1=" "; l2=" "; l3=" ";
+        # Count the total number of archives written that day
+        incr=`search_tar "$1" "$i" "[0-9]" "[0-9]{2}" | wc -w`
+        # Find all unique levels per date
+        for j in `ls "$1" | grep "$i" | filter_level | uniq`
         do
+            tars=`search_tar "$1" "$i" "$j" "[0-9]{2}"`
+            snars=`search_snar "$1" "$i" "$j"`
+
+            # Check out if things should be highlighted
+            tars_hl=`search_tar "$2" "$i" "$j" "[0-9]{2}"`
+            snars_hl=`search_snar "$2" "$i" "$j"`
+
             # figure out what exists at each level
-            if `ls "$1" | grep -q -E "${i}\.[0-9]*-${j}\.tar"`
+            if [ "$tars_hl" -a "$snars_hl" ] || [ "$tars_hl" -a "$snars" ] || [ "$tars" -a "$snars_hl" ]
             then
-                if `ls "$1" | grep -q -E "${i}\.[0-9]*-${j}\.snar"`
-                then
-                    # Both metadata and archive present
-                    eval `echo l${j}="b"`
-                else
-                    # Only archive present
-                    eval `echo l${j}="x"`
-                fi
-            elif `ls "$1" | grep -q -E "${i}\.[0-9]*-${j}\.snar"`
+                # Both metadata and archive present and at least one highlighted
+                mark="B"
+            elif [ "$tars_hl" ]
+            then
+                # Only higlighted archive present
+                mark="X"
+            elif [ "$snars_hl" ]
+            then
+                # Only highlighted metadata present
+                mark="O"
+            elif [ "$tars" -a "$snars" ]
+            then
+                # Both metadata and archive present
+                mark="b"
+            elif [ "$tars" ]
+            then
+                # Only archive present
+                mark="x"
+            elif [ "$snars" ]
             then
                 # Only metadata present
-                eval `echo l${j}="o"`
+                mark="o"
+            else
+                mark=" "
             fi
-            # Find the number of increments at this level
-            incr=$(($incr + `ls "$1" | grep -E "${i}\.[0-9]*-${j}\.tar" | wc -l`))
+            eval `echo l${j}="${mark}"`
         done
-        msg="${msg} | ${l0} ${l1} ${l2} ${l3} | ${incr}"
-        echo "$msg" 1>&2
+        echo "| ${date} | ${l0} ${l1} ${l2} ${l3} | `printf '%02d' ${incr}` |" 1>&2
     done
+
+    # Print column footers
+    echo "| ----date---- | -level- | -- |" 1>&2
+    echo "| YYYY_MM_WW_D | 0 1 2 3 | II |" 1>&2
+
+    # Print Legend
+    echo 1>&2
+    echo "Legend:" 1>&2
+    echo "date - format: %Y%m%U%w" 1>&2
+    echo "x/X  - archive made" 1>&2
+    echo "o/O  - snapshot made" 1>&2
+    echo "b/B  - archive and snapshot made" 1>&2
+    echo "II   - total increments per day" 1>&2
+
+    if [ -f $2 ]
+    then
+        # Print info about emphasis
+        echo 1>&2
+        echo "Files in ${2}" 1>&2
+        echo "are capitalized for emphasis" 1>&2
+    fi
 }
 
 test_brains () {
@@ -133,7 +173,7 @@ test_brains () {
 
     local test_dir year month week day i arxv_level
 
-    test_dir=testing
+    test_dir="testing"
     if [ ! -d "$test_dir" ] && $(basename `pwd` | grep -q -v "$test_dir")
     then
         mkdir "$test_dir"
@@ -165,7 +205,7 @@ test_brains () {
                 arxv_level=`file_level "$BACKUP_ARXV"`
                 if [ $arxv_level -ne $LEVEL -a $arxv_level -ne 0 ]
                 then # Not at top or bottom
-                    touch `raise_snar "$date"`
+                    touch `raise_snar "$BACKUP_SNAR" "$date"`
                 fi
             done
         done

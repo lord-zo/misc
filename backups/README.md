@@ -77,7 +77,6 @@ Symbols in the same column are created at the same time
 |   0   | ...  x                                                      ... |
 |       | ...                                                         ... |
 | ----- | ... >----------------------> Time >-----------------------> ... |
-
 ```
 
 Note: when you follow a branch down and left, and extract in reverse
@@ -101,21 +100,25 @@ so you can verify that this works ahead of time.
 ```
 $ . backup_brains.sh
 $ test_brains
-YYYY_MM_WW_D | 0 1 2 3 | I
-----date---- | -level- | -
-2020_01_00_0 | x o     | 1
-2020_01_00_1 |   x o   | 1
-2020_01_00_2 |     x o | 1
-2020_01_00_3 |       x | 1
-2020_01_00_4 |       x | 1
-2020_01_00_5 |       x | 1
-2020_01_00_6 |       x | 1
-2020_01_01_0 |     x o | 1
-2020_01_01_1 |       x | 1
+| YYYY_MM_WW_D | 0 1 2 3 | II |
+| ----date---- | -level- | -- |
+| 2020_01_00_0 | x o     | 01 |
+| 2020_01_00_1 |   x o   | 01 |
+| 2020_01_00_2 |     x o | 01 |
+| 2020_01_00_3 |       x | 01 |
+| 2020_01_00_4 |       x | 01 |
+| 2020_01_00_5 |       x | 01 |
+| 2020_01_00_6 |       x | 01 |
+| 2020_01_01_0 |     x o | 01 |
+| 2020_01_01_1 |       x | 01 |
 
 # Output Truncated here
 
 ```
+
+Note: You may also supply a file to the drawing function,
+`draw_arxv`, which will emphasize the marks in the same
+day and level as archive filenames in the file.
 
 # Inspiration
 - https://stephenreescarter.net/automatic-backups-for-wsl2/
