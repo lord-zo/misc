@@ -236,3 +236,39 @@ return_uniq_result () {
         return 1
     fi
 }
+
+confirmation () {
+    # Interactively ask before action-ing
+    # $1 should be an action verb (e.g. removing) to display in prompts
+    # $2 should be the directory containing those actual files
+    # $3 should be a file with archive filenames to review
+    local action="$1" arxv_dir="$2" arxv_files="$3" REPLY
+    read -p "review archive files before ${action}? [y/N] " REPLY
+    if [ "${REPLY=N}" = "y" ]
+    then
+        while true
+        do
+            read -p "view filenames [y] or archive graph [g]? [y/g/N] " REPLY
+            if [ "${REPLY=N}" = "y" ]
+            then
+                (less "$arxv_files")
+            elif [ "${REPLY=N}" = "g" ]
+            then
+                (draw_arxv "$arxv_dir" "$arxv_files" | less)
+            else
+                break
+            fi
+            tput cuu1
+            tput el
+        done
+    fi
+
+    read -p "proceed ${action} archive? [y/N] " REPLY
+    if [ "${REPLY=N}" = "y" ]
+    then
+        echo "${action} archive"
+    else
+        echo "no action, exiting"
+        exit 0
+    fi
+}

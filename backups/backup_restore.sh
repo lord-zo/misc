@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # backup_restore.sh
 # By: Lorenzo Van Munoz
@@ -20,16 +20,23 @@ of the files in the backup are in a YYYY_MM_WW_D format equivalent
 to `date +%Y%m%U%w` so finding the backup you want shouldn't be hard
 "
 
-. ./backup_graphs
+. ./backup_brains.sh
+. ./backup_graphs.sh
 
-if [ "$1" = "-h" ] || [ ! -f "$1" -a `echo "$1" | filter_archive` ]
+if [ "$1" = "-h" ] #|| [ ! -f "$1" -a `echo "$1" | filter_archive` ]
 then
     echo "$USAGE"
-else
+    exit 0
+fi
 
-BACKUP_RCVR="./backup_recover.log"
-touch "$BACKUP_RCVR"
-find_recovery_arxv "$BACKUP_DEST" "$1" > "$BACKUP_RCVR"
-cat "$BACKUP_RCVR" | tar -P -x -f - -g /dev/null
+BACKUP_RLOG="./backup_recover.log"
+touch "$BACKUP_RLOG"
+find_recovery_arxv "$BACKUP_DEST" "$1" > "$BACKUP_RLOG"
+
+confirmation "restoring" "$BACKUP_DEST" "$BACKUP_RLOG"
+
+#cd "$BACKUP_DEST"
+#cat "$BACKUP_RLOG" | tar -P -x -f - -g /dev/null
+#cd -
 
 exit 0

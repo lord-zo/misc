@@ -63,10 +63,16 @@ else
 fi
 
 . ./backup_graphs.sh
+. ./backup_brains.sh
 
 BACKUP_DLOG="./backup_delete.log"
 touch "$BACKUP_DLOG"
 find_old_arxv "$BACKUP_DEST" "$DAYS" > "$BACKUP_DLOG"
-cat "$BACKUP_DLOG" | xargs -i rm {}
+
+confirmation "cleaning" "$BACKUP_DEST" "$BACKUP_DLOG"
+
+#cd "$BACKUP_DEST"
+#cat "$BACKUP_DLOG" | xargs -i rm {}
+#cd -
 
 exit 0

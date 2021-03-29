@@ -38,10 +38,10 @@ find_next_level () {
     local ext=`file_ext "$2"`
     local date=`file_date "$2"`
     local level=`file_level "$2"`
-    if [ "$ext"` = "tar" ]
+    if [ "$ext" = "tar" ]
     then
         # Look up a level for a same-day .snar one level higher
-        local test=$(search_snar "$1" "$date"` $(("$level"` + 1)))
+        local test=$(search_snar "$1" "$date" $(($level + 1)))
         if [ "$test" ]
         then
             # Found a higher level .snar
@@ -53,7 +53,7 @@ find_next_level () {
     elif [ "$ext" = "snar" ]
     then
         # Look down for a same-day, lower-level tar
-        local test=$(search_tar "$1" "$date"` $(("$level"` - 1)) | tail -1)
+        local test=$(search_tar "$1" "$date" $(("$level" - 1)) | tail -1)
         if [ "$test" ]
         then
             # Found a lower level .tar
@@ -115,11 +115,10 @@ find_recovery_arxv () {
     # Returns all the archives needed to restore the input states
     # $1 should be a directory
     # $2 should be a .tar archive file
-    local test="$2"
-    local prev
+    local test="$2" prev
     while [ "$test" != "$prev" ]
     do
-        if [ `file_ext $test` = "tar" ]
+        if [ `file_ext "$test"` = "tar" ]
         then
             echo "$test"
         fi
