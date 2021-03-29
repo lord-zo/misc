@@ -4,6 +4,8 @@
 # By: Lorenzo Van Munoz
 # On: 28/03/2021
 
+# WARNING: do not run this in bash because echo works differently
+
 . ./backup_utils.sh
 
 # Functions to help navigate the dependency graph
@@ -14,6 +16,7 @@ find_next_incr () {
     # $1 should be a directory
     # $2 should be a .tar or .snar archive file
     # $3 should be an integer number of increments to jump (e.g. 1, -1)
+
     local dir="$1" arxv_file="$2" jump="$3"
     local incr=`file_incr "$arxv_file"`
     local date=`file_date "$arxv_file"`
@@ -36,6 +39,7 @@ find_next_level () {
     # If no such file exists, returns the original file
     # $1 should be a directory
     # $2 should be a .tar or .snar archive file
+
     local dir="$1" arxv_file="$2"
     local ext=`file_ext "$arxv_file"`
     local date=`file_date "$arxv_file"`
@@ -76,21 +80,11 @@ find_next_arxv () {
     # If no such file exists, returns the original file
     # $1 should be a directory
     # $2 should be a .tar or .snar archive file
+
     local dir="$1" arxv_file="$2"
     test_level=`find_next_level "$dir" "$arxv_file"`
     test_incr=`find_next_incr "$dir" "$arxv_file" "1"`
-    if [ "$test_level" != "$arxv_file" ]
-    then
-        # Move along level towards newest files
-        echo "$test_level"
-    elif [ "$test_incr" != "$arxv_file" ]
-    then
-        # Move up a level when cannot continue along that level
-        echo "$test_incr"
-    else
-        # Reached end of branch
-        echo "$arxv_file"
-    fi
+    echo "${test_level}\n${test_incr}" | sort | tail -1
 }
 
 find_prev_arxv () {
@@ -98,27 +92,18 @@ find_prev_arxv () {
     # If no such file exists, returns the original file
     # $1 should be a directory
     # $2 should be a .tar or .snar archive file
+
     local dir="$1" arxv_file="$2"
     test_level=`find_next_level "$dir" "$arxv_file"`
     test_incr=`find_next_incr "$dir" "$arxv_file" "-1"`
-    if [ "$test_incr" != "$arxv_file" ]
-    then
-        # Move along level towards older files
-        echo "$test_level"
-    elif [ "$test_level" != "$arxv_file" -a `file_ext "$arxv_file"` = "snar" ]
-    then
-        # Move down a level when cannot continue along that level
-        echo "$test_level"
-    else
-        # Reached end / source of archive
-        echo "$arxv_file"
-    fi
+    echo "${test_level}\n${test_incr}" | sort | head -1
 }
 
 find_recovery_arxv () {
     # Returns all the archives needed to restore the input states
     # $1 should be a directory
     # $2 should be a .tar archive file
+
     local dir="$1" test="$2" prev
     while [ "$test" != "$prev" ]
     do
@@ -135,6 +120,19 @@ find_old_arxv () {
     # Returns all the archives not needed to recover files created after date
     # $1 should be a directory
     # $2 should be a date in %Y_%m_%U_%w format
-    return
-    # This should make a call to find_recovery_arxv and perform a grep -v
+
+    local dir="$1" date="$2" tmp_file="backup_graphs.tmp" arxv
+    > "$tmp_file"
+    for arxv in `ls "$dir" | filter_archive | grep -A 10000 "${date}.*tar$" | tac`
+    do
+        # find all dependencies of this file
+        if `cat "$tmp_file" | grep -q -v "$arxv"`
+        then
+            # if file is not already included, find dependencies
+            find_recovery_arxv "$dir" "$arxv" >> "$tmp_file"
+        fi
+    done
+    cat "$tmp_file" | uniq | sort > "$tmp_file"
+    ls "$dir" | filter_archive | grep -v -f "$tmp_file"
+#    rm "$tmp_file"
 }

@@ -1,7 +1,7 @@
 # Create backup data files if not present
 if [ -s "$BACKUP_DEST" ]
 then
-    BACKUP_DEST=`cat "$BACKUP_DEST"`
+    BACKUP_DEST=`cat "$BACKUP_DEST" | grep -v -E ^# | head -1`
 else
     if [ ! -f "$BACKUP_DEST" ]
     then

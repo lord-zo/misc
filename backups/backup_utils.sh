@@ -28,8 +28,9 @@ then
     exit 0
 fi
 
-alias filter_archive="grep -E '${PREFIX}\.[0-9]{4}_[0-9]_[0-9]{2}_[0-9]{2}_[0-9]\.[0-9]-[0-9]\.(tar|snar)\$'"
-alias filter_date="sed -E 's@${PREFIX}\.([0-9]{4}_[0-9]_[0-9]{2}_[0-9]{2}_[0-9])\..*\.(tar|snar)\$@\1@'"
+DATE_PATTERN="[0-9]{4}_[0-9]_[0-9]{2}_[0-9]{2}_[0-9]"
+alias filter_archive="grep -E '${PREFIX}\.${DATE_PATTERN}\.[0-9]-[0-9]\.(tar|snar)\$'"
+alias filter_date="sed -E 's@${PREFIX}\.(${DATE_PATTERN})\..*\.(tar|snar)\$@\1@'"
 alias filter_level="sed -E 's@.+\.([0-9])-[0-9]\.(tar|snar)\$@\1@'"
 alias filter_incr="sed -E 's@.+\.[0-9]-([0-9])\.(tar|snar)\$@\1@'"
 
@@ -270,7 +271,7 @@ draw_arxv () {
             if [ ! "$arxvs" ]
             then
                 mark=" "
-            elif [ -f "$file_level" ]
+            elif [ -f "$file_hl" ]
             then
                 # figure out what exists at each level
                 tars=`echo "$arxvs" | grep -E tar\$`

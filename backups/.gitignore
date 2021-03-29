@@ -1,5 +1,6 @@
 ## Backup conf, recovery, deletion files
 backup_*.log
 backup_*.conf
+backup_*.tmp
 ## Testing directory
 testing/

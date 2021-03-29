@@ -31,8 +31,12 @@ All things considered, it wouldn't be so hard to read the
 GNU backup scripts and cherry-pick what I want, but what
 mechanic doesn't want to build their own wheel?
 
+Please do not run these scripts using bash - there will be all
+sorts of baffling errors due to its POSIX incompliance in places.
+I tested this script using dash, in case you can find it too,
+but I'm not going to make any claims that this is truly portable.
+
 TODO:
-- Create a recovery script to restore a particular state from the archive
 - Create a script to clean old files from the archive
 
 The easiest way to automate the backups in WSL is to use
@@ -80,22 +84,22 @@ Symbols in the same column are created at the same time
 | ----- | ... >----------------------> Time >-----------------------> ... |
 ```
 
-Note: when you follow a branch down and left, and extract in reverse
+**Note:** when you follow a branch down and left, and extract in reverse
 order (from bottom left to top right) all the archives (x's) along that
 path, you recover the filesystem on that branch.
 
-Note: a snapshot "o" at level N>1 is a copy of a snapshot at level N-1
+**Note:** a snapshot "o" at level N>1 is a copy of a snapshot at level N-1
 after making the level N-1 archive with the level N-1 snapshot. 
 If N=1 was created with the full archive (level 0) or if N>1.
 Thus a level N snapshot provides metadata for level N archives.
 
-Note: for illustrative purposes, the number of nodes per branch
+**Note:** for illustrative purposes, the number of nodes per branch
 is shorter than what it would be, but this illustrates the connections
 between the archive files and their metadata as the archive is incremented. 
 To obtain the graph for a level N-M archive, truncate the rows for levels 
 N, N-1, ..., to N-M+1 from the graph.
 
-Note: a test function `test_brains` is included in `backup_brains.sh`
+**Note:** a test function `test_brains` is included in `backup_brains.sh`
 so you can verify that this works ahead of time.
 
 ```
@@ -118,7 +122,7 @@ $ test_brains
 
 ```
 
-Note: You may also supply a file to the drawing function
+**Note:** You may also supply a file to the drawing function
 in `backup_utils.sh`, `draw_arxv` which will emphasize the
 marks in the same day and level as archive filenames in the file.
 

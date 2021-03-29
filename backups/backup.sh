@@ -16,6 +16,12 @@ When called without arguments, performs an incremental backup of
 files in backup_files.conf, excluding patterns in backup_ignore.conf.
 Specify the backup directory in a backup_destination.conf.
 To configure the frequency/level of full backups, edit backup_conf.sh.
+
+Examples:
+$ echo LEVEL=3 >> ./backup_conf.sh
+$ echo /some/files > ./backup_files.conf
+$ echo /some/dir > ./backup_destination.conf
+$ ./backup.sh
 "
 
 if [ "$1" = "-h" ]

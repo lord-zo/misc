@@ -5,67 +5,38 @@
 # By: Lorenzo Van Munoz
 # On: 28/03/2021
 
-USAGE="Usage: backup_clean.sh [-h] [[OPTION NUMBER]]
+USAGE="Usage: backup_clean.sh [-h] DATE
 
 Description: Deletes files in an incremental archive that are old
 
 Options:
-OPTION  one of y, q, m, w, d (years, quarters, months, weeks, days)
-NUMBER  A positive integer (> 0)
+DATE    A date with YYYY_Q_MM_WW_D format or archive filename
 -h      Show this message and exit
 
 Details:
-The script takes the requested duration and looks in the archive,
-deleting all files older than the duration except those that are
-needed to recover the state of the system.
-A each day is a day, each week is 7 days, each month is 24 days,
-each quarter is 72 days and each year is 365 days
+This cleans up and saves space in a backup archive by deleting any
+file older than the given date that isn't a dependency of a more
+recent file
 
 Examples:
-$ backup_clean.sh y 1 m 3 # deletes uneeded archives 455 days old
+$ ./backup_clean.sh 2021_5_14_53_7
+$ ./backup_clean.sh archive.2021_5_14_53_7.4-5.tar
 "
+cd `dirname $0`
+. ./backup_graphs.sh
 
-if [ "$1" = "-h" -o ! "$1" -o ! "$2" ]
+if [ "$1" = "-h" -o ! "$1" ] || `echo "$1" | grep -q -v -E "${DATE_PATTERN}"`
 then
     echo "$USAGE"
-else
-    i=1
-    DAYS=0
-    OPTION=`eval echo \$"$i"`
-    LENGTH=`eval echo \$"$(($i + 1))"`
-    while [ "$OPTION"`  -a "$LENGTH" ]
-    do
-        OPTION=`eval echo \$"$i"`
-        LENGTH=`eval echo \$"$(($i + 1))"`
-        if [ "$LENGTH" -ge 0 ]
-            then
-            if [ "$OPTION" = "d" ]
-            then
-                DAYS=$(($DAYS + $LENGTH))
-            elif [ "$OPTION" = "w" ]
-            then
-                DAYS=$(($DAYS + 7 * $LENGTH))
-            elif [ "$OPTION" = "m" ]
-            then
-                DAYS=$(($DAYS + 24 * $LENGTH))
-            elif [ "$OPTION" = "q" ]
-            then
-                DAYS=$(($DAYS + 72 * $LENGTH))
-            fi
-            elif [ "$OPTION" = "y" ]
-            then
-                DAYS=$(($DAYS + 365 * $LENGTH))
-            fi
-        fi
-        i=$(($i + 2))
-    done
+    exit 0
 fi
 
-. ./backup_graphs.sh
+# filter out just the date
+set -- `echo "$1" | sed -E "s@.*(${DATE_PATTERN}).*@\1@"`
 
 BACKUP_DLOG="./backup_delete.log"
 touch "$BACKUP_DLOG"
-find_old_arxv "$BACKUP_DEST" "$DAYS" > "$BACKUP_DLOG"
+find_old_arxv "$BACKUP_DEST" "$1" > "$BACKUP_DLOG"
 
 confirmation "cleaning" "$BACKUP_DEST" "$BACKUP_DLOG"
 
