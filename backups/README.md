@@ -50,10 +50,11 @@ when the level parameter is set to a particular value:
 ```
 | Level | Frequency of full backups |
 | ----- | ------------------------- |
-| 0     | Daily                     |
-| 1     | Weekly                    |
-| 2     | Monthly                   |
-| 3     | Yearly                    |
+|   0   | Daily                     |
+|   1   | Weekly                    |
+|   2   | Monthly                   |
+|   3   | Quarterly                 |
+|   4   | Yearly                    |
 ```
 
 The archive created by `backup.sh` has a graph-like structure.
@@ -100,25 +101,26 @@ so you can verify that this works ahead of time.
 ```
 $ . backup_brains.sh
 $ test_brains
-| YYYY_MM_WW_D | 0 1 2 3 | II |
-| ----date---- | -level- | -- |
-| 2020_01_00_0 | x o     | 01 |
-| 2020_01_00_1 |   x o   | 01 |
-| 2020_01_00_2 |     x o | 01 |
-| 2020_01_00_3 |       x | 01 |
-| 2020_01_00_4 |       x | 01 |
-| 2020_01_00_5 |       x | 01 |
-| 2020_01_00_6 |       x | 01 |
-| 2020_01_01_0 |     x o | 01 |
-| 2020_01_01_1 |       x | 01 |
+| YYYY_Q_MM_WW_D | 0 1 2 3 4 | I |
+| -----date----- | --level-- | - |
+| 2020_1_01_01_1 | x o       | 1 |
+| 2020_1_01_01_2 |   x o     | 1 |
+| 2020_1_01_01_3 |     x o   | 1 |
+| 2020_1_01_01_4 |       x o | 1 |
+| 2020_1_01_01_5 |         x | 1 |
+| 2020_1_01_01_6 |         x | 1 |
+| 2020_1_01_01_7 |         x | 1 |
+| 2020_1_01_02_1 |       x o | 1 |
+| 2020_1_01_02_2 |         x | 1 |
+| 2020_1_01_02_3 |         x | 1 |
 
 # Output Truncated here
 
 ```
 
-Note: You may also supply a file to the drawing function,
-`draw_arxv`, which will emphasize the marks in the same
-day and level as archive filenames in the file.
+Note: You may also supply a file to the drawing function
+in `backup_utils.sh`, `draw_arxv` which will emphasize the
+marks in the same day and level as archive filenames in the file.
 
 # Inspiration
 - https://stephenreescarter.net/automatic-backups-for-wsl2/

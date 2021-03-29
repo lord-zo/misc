@@ -20,7 +20,6 @@ of the files in the backup are in a YYYY_MM_WW_D format equivalent
 to `date +%Y%m%U%w` so finding the backup you want shouldn't be hard
 "
 
-. ./backup_brains.sh
 . ./backup_graphs.sh
 
 if [ "$1" = "-h" ] #|| [ ! -f "$1" -a `echo "$1" | filter_archive` ]

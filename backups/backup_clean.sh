@@ -5,12 +5,12 @@
 # By: Lorenzo Van Munoz
 # On: 28/03/2021
 
-USAGE="Usage: backup_clean.sh [-h] OPTION NUMBER
+USAGE="Usage: backup_clean.sh [-h] [[OPTION NUMBER]]
 
 Description: Deletes files in an incremental archive that are old
 
 Options:
-OPTION  one of y, m, w, d (years, months, weeks, days)
+OPTION  one of y, q, m, w, d (years, quarters, months, weeks, days)
 NUMBER  A positive integer (> 0)
 -h      Show this message and exit
 
@@ -18,8 +18,8 @@ Details:
 The script takes the requested duration and looks in the archive,
 deleting all files older than the duration except those that are
 needed to recover the state of the system.
-A each day is a day, each week is 7 days, each month is 30 days,
-and each year is 365 days
+A each day is a day, each week is 7 days, each month is 24 days,
+each quarter is 72 days and each year is 365 days
 
 Examples:
 $ backup_clean.sh y 1 m 3 # deletes uneeded archives 455 days old
@@ -31,7 +31,9 @@ then
 else
     i=1
     DAYS=0
-    while [ `eval echo \$"$i"` ] && [ `eval echo \$"$(($i + 1))"` ]
+    OPTION=`eval echo \$"$i"`
+    LENGTH=`eval echo \$"$(($i + 1))"`
+    while [ "$OPTION"`  -a "$LENGTH" ]
     do
         OPTION=`eval echo \$"$i"`
         LENGTH=`eval echo \$"$(($i + 1))"`
@@ -45,7 +47,11 @@ else
                 DAYS=$(($DAYS + 7 * $LENGTH))
             elif [ "$OPTION" = "m" ]
             then
-                DAYS=$(($DAYS + 30 * $LENGTH))
+                DAYS=$(($DAYS + 24 * $LENGTH))
+            elif [ "$OPTION" = "q" ]
+            then
+                DAYS=$(($DAYS + 72 * $LENGTH))
+            fi
             elif [ "$OPTION" = "y" ]
             then
                 DAYS=$(($DAYS + 365 * $LENGTH))
@@ -53,17 +59,9 @@ else
         fi
         i=$(($i + 2))
     done
-    echo "Removing files older than $DAYS days old. Proceed? [y/N]"
-    read BOOL
-    if [ ! "$BOOL" = "y" ]
-    then
-        echo Exiting
-        exit 0
-    fi
 fi
 
 . ./backup_graphs.sh
-. ./backup_brains.sh
 
 BACKUP_DLOG="./backup_delete.log"
 touch "$BACKUP_DLOG"

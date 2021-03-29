@@ -5,45 +5,68 @@
 # On: 28/03/2021
 
 # The functions gather information about archive file names
-# (which have a $PREFIX.YYYY_MM_WW_D.L-II.\(snar\)\|\(tar\) format)
+# (which have a $PREFIX.YYYY_Q_MM_WW_D.L-I.\(snar\)\|\(tar\) format)
 # and allow one to walk along the graph to find dependencies
 # Prefix must not have any periods
 
 . ./backup_conf.sh
 . ./backup_read_conf.sh
 
-alias filter_archive="grep -E '${PREFIX}\.[0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]\.[0-9]-[0-9]{2}\.(tar|snar)\$'"
-alias filter_date="sed -E 's@${PREFIX}\.([0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]).*\.(tar|snar)\$@\1@'"
-alias filter_level="sed -E 's@.+\.([0-9])-[0-9]{2}\.(tar|snar)\$@\1@'"
-alias filter_incr="sed -E 's@.+\.[0-9]-([0-9]{2})\.(tar|snar)\$@\1@'"
+# This global variable specifies the actual number of implemented levels
+# If you increase this, you'll also have to implement the additional levels
+# You'll also have realized that the frequency of levels is specified by
+# the date, so you'll have to change any date patterns in this library
+N=4
+# Constrain LEVEL to actual implementation
+if [ $LEVEL -lt 0 ]
+then
+    echo "Negative level backups cannot be made. Exiting"
+    exit 0
+elif [ $LEVEL -gt $N ]
+then
+    echo "This script does not have a rule for level > ${N} backups. Exiting"
+    exit 0
+fi
+
+alias filter_archive="grep -E '${PREFIX}\.[0-9]{4}_[0-9]_[0-9]{2}_[0-9]{2}_[0-9]\.[0-9]-[0-9]\.(tar|snar)\$'"
+alias filter_date="sed -E 's@${PREFIX}\.([0-9]{4}_[0-9]_[0-9]{2}_[0-9]{2}_[0-9])\..*\.(tar|snar)\$@\1@'"
+alias filter_level="sed -E 's@.+\.([0-9])-[0-9]\.(tar|snar)\$@\1@'"
+alias filter_incr="sed -E 's@.+\.[0-9]-([0-9])\.(tar|snar)\$@\1@'"
 
 pattern_date_level () {
     # Returns a pattern to use to filter up-to-date files of the same level
-    # Note that getting the frequency right depends on $N and $LEVEL
-    # $1 should be a date in %Y_%m_%U_%w format
-    # $2 should be a digit level (implemented 1-3)
-    # Offset by $i to $N - $LEVEL means correct pattern
-    # to ensure that the $LEVEL backups occur daily
-    if [ ! $2 -ge 1 -a $2 -le $LEVEL ]
+    # $1 should be a date in %G_%q_%m_%V_%u format
+    # $2 should be a digit level (implemented 0-$N)
+    local date="$1" level="$2"
+    if [ ! $level -ge 0 -a $level -le $LEVEL ]
     then
-        echo "Error: selected level ${2} not implemented" 1>&2
+        echo "Error: selected level ${level} not implemented" 1>&2
         return 1
     fi
 
-    if [ $2 -eq $LEVEL ]
+    if [ $level -eq 0 ]
     then
-        # Daily backup pattern -- lifetime of 1 week
-        echo "${PREFIX}.${1%_*}"
-    elif [ $2 -eq $(($LEVEL - 1)) ]
+        # Daily backup pattern
+        echo "${PREFIX}\.${date}"
+        # Note this case is for redundancy
+    elif [ $level -eq $LEVEL ]
     then
-        # Weekly backup pattern -- lifetime of 1 month
-        echo "${PREFIX}.${1%_*_*}"
-    elif [ $2 -eq $(($LEVEL - 2)) ]
+        # Weekly full backup pattern
+        echo "${PREFIX}\.${date%_*}"
+    elif [ $level -eq $(($LEVEL - 1)) ]
     then
-        # Monthly backup pattern -- lifetime of 1 year
-        echo "${PREFIX}.${1%_*_*_*}"
+        # Monthly full backup pattern
+        echo "${PREFIX}\.${date%_*_*}"
+    elif [ $level -eq $(($LEVEL - 2)) ]
+    then
+        # Quarterly full backup pattern
+        echo "${PREFIX}\.${date%_*_*_*}"
+    elif [ $level -eq $(($LEVEL - 3)) ]
+    then
+        # Yearly full backup pattern
+        echo "${PREFIX}\.${date%_*_*_*_*}"
     else
-        echo "Error: selected level ${2} not implemented" 1>&2
+        echo "Error: selected level ${level} not implemented" 1>&2
         return 1
     fi
 }
@@ -73,7 +96,7 @@ file_li () {
 file_level () {
     # $1 should be an archive filename without dirname
     local level=`file_li "$1"`
-    echo ${level%-??}
+    echo ${level%-?}
 }
 
 file_incr () {
@@ -93,100 +116,43 @@ file_year () {
     echo `file_date "$1"` | cut -d_ -f1
 }
 
-file_month () {
+file_quarter () {
     # $1 should be an archive filename without dirname
     echo `file_date "$1"` | cut -d_ -f2
 }
 
-file_week () {
+file_month () {
     # $1 should be an archive filename without dirname
     echo `file_date "$1"` | cut -d_ -f3
 }
 
-file_day () {
+file_week () {
     # $1 should be an archive filename without dirname
     echo `file_date "$1"` | cut -d_ -f4
+}
+
+file_day () {
+    # $1 should be an archive filename without dirname
+    echo `file_date "$1"` | cut -d_ -f5
 }
 
 file_age () {
     # Returns the age of the file in days compared to today
     # $1 should be an archive filename without dirname
     local year month week day YEAR MONTH WEEK DAY age
-    YEAR=`date +%Y`
-    MONTH=`date +%m`
-    WEEK=`date +%U`
-    DAY=`date +%w`
+    YEAR=`date +%G`
+    WEEK=`date +%V`
+    DAY=`date +%u`
     year=`file_year "$1"`
-    month=`file_month "$1"`
     week=`file_week "$1"`
     day=`file_day "$1"`
     age=$((
         ${DAY##0} - ${day##0}
         + 7 * (${WEEK##0} - ${week##0})
-        + 30 * (${MONTH##0} - ${month##0})
         + 365 * (${YEAR##0} - ${year##0})
+        # In reality, an ISO year is 364 or 371 days
         ))
     echo "$age"
-}
-
-change_level () {
-    # $1 should be an archive filename without dirname
-    # $2 should be a single digit level
-    echo "$1" | sed -E "s@.[0-9]-@.${2}-@"
-}
-
-change_incr () {
-    # $1 should be an archive filename without dirname
-    # $2 should be a two-digit increment
-    echo "$1" | sed -E "s@-[0-9]{2}\.@-${2}.@"
-}
-
-change_date () {
-    # $1 should be an archive filename without dirname
-    # $2 should be a date in 'YYYY_MM_WW_D' format
-    echo "$1" | sed -E "s@[0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{1}@${2}@"
-}
-
-raise_level () {
-    # Raise the level of an archive file by 1
-    # $1 should be an archive filename without dirname
-    local level=$((`file_level "$1"` + 1))
-    if [ $level -gt 9 -o $level -lt 0 ]
-    then
-        echo "Error: cannot increase level of ${1}" 1>&2
-        return 1
-    else
-        change_level "$1" "$level"
-    fi
-}
-
-raise_incr () {
-    # Raise the increment counter by 1
-    # $1 should be an archive filename without dirname
-    local incr=`file_incr "$1"`
-    incr=$((${incr#0} + 1))
-    if [ $incr -gt 99 -o $incr -lt 0 ]
-    then
-        echo "Error: cannot increase increment of ${1}" 1>&2
-        return 1
-    else
-        change_incr "$1" `printf '%02d' "$incr"`
-    fi
-}
-
-
-raise_snar () {
-    # Raise the archive (.snar) a level and update date
-    # $1 should be an archive filename without dirname
-    # $2 should be a date
-    raise_level `change_date "$1" "$2"`
-}
-
-raise_tar () {
-    # Raise the archive (.tar) an increment and update date
-    # $1 should be an archive filename without dirname
-    # $2 should be a date
-    raise_incr `change_date "$1" "$2"`
 }
 
 search_arxv () {
@@ -218,7 +184,7 @@ search_snar () {
     # $1 should be a directory or file
     # $2 should be a ERE pattern
     # $3 should be a digit level or ERE
-    search_arxv "$1" "$2" "$3" "[0-9]{2}" | grep "snar$"
+    search_arxv "$1" "$2" "$3" "[0-9]" | grep "snar$"
 }
 
 return_uniq_result () {
@@ -270,5 +236,113 @@ confirmation () {
     else
         echo "no action, exiting"
         exit 0
+    fi
+}
+
+draw_arxv () {
+    # Print a graphical representation of the archive structure to console
+    # $1 is an optional directory (default: $BACKUP_DEST)
+    # $2 is an optional file whose lines are archive files to be emphasized
+    local dir="$1" file_hl="$2" arxvs tars snars arxvs_hl tars_hl snars_hl
+    local date level marks mark incr
+
+    if [ ! -d "$dir" ]
+    then
+        dir="$BACKUP_DEST"
+    fi
+
+    # Print column headers
+    echo "| YYYY_Q_MM_WW_D | 0 1 2 3 4 | I |" 1>&2
+    echo "| -----date----- | --level-- | - |" 1>&2
+
+    # Find all archive files with a unique date
+    for date in `ls "$dir" | filter_archive | filter_date | uniq`
+    do
+        # Print one line of information per day
+        # Count the total number of archives written that day
+        marks=""
+        incr=`search_tar "$dir" "$date" "[0-9]" "[0-9]" | wc -w`
+        # Find all unique levels per date (from 0 to 4)
+        for level in `seq 0 $N`
+        do
+            arxvs=`search_arxv "$dir" "$date" "$level" "[0-9]"`
+
+            if [ ! "$arxvs" ]
+            then
+                mark=" "
+            elif [ -f "$file_level" ]
+            then
+                # figure out what exists at each level
+                tars=`echo "$arxvs" | grep -E tar\$`
+                snars=`echo "$arxvs" | grep -E snar\$`
+                # Check out if things should be highlighted
+                arxvs_hl=`search_arxv "$file_hl" "$date" "$level" "[0-9]"`
+                tars_hl=`echo "$arxvs_hl" | grep -E tar\$`
+                snars_hl=`echo "$arxvs_hl" | grep -E snar\$`
+                if [ "$tars_hl" -a ! "$snars" ]
+                then
+                    # Only higlighted archive present
+                    mark="X"
+                elif [ "$snars_hl" -a ! "$tars" ]
+                then
+                    # Only highlighted metadata present
+                    mark="O"
+                elif [ "$tars_hl" -a "$snars_hl" ]
+                then
+                    # Both metadata and archive present and at least one highlighted
+                    mark="B"
+                elif [ "$tars" -a ! "$snars" ]
+                then
+                    # Only archive present
+                    mark="x"
+                elif [ "$snars" -a ! "$tars" ]
+                then
+                    # Only metadata present
+                    mark="o"
+                else
+                    # Both metadata and archive present
+                    mark="b"
+                fi
+            else
+                # figure out what exists at each level
+                tars=`echo "$arxvs" | grep -E tar\$`
+                snars=`echo "$arxvs" | grep -E snar\$`
+                if [ "$tars" -a ! "$snars" ]
+                then
+                    # Only archive present
+                    mark="x"
+                elif [ "$snars" -a ! "$tars" ]
+                then
+                    # Only metadata present
+                    mark="o"
+                else
+                    # Both metadata and archive present
+                    mark="b"
+                fi
+            fi
+            marks="${marks} ${mark}"
+        done
+        echo "| ${date} |${marks} | ${incr} |" 1>&2
+    done
+
+    # Print column footers
+    echo "| YYYY_Q_MM_WW_D | 0 1 2 3 4 | I |" 1>&2
+    echo "| -----date----- | --level-- | - |" 1>&2
+
+    # Print Legend
+    echo 1>&2
+    echo "Legend:" 1>&2
+    echo "x/X  - archive made" 1>&2
+    echo "o/O  - snapshot made" 1>&2
+    echo "b/B  - archive and snapshot made" 1>&2
+    echo "I    - total increments per day" 1>&2
+    echo "date - format: %G_%q_%m_%V_%u" 1>&2
+
+    if [ -f "$file_hl" ]
+    then
+        # Print info about emphasis
+        echo 1>&2
+        echo "Files in ${file_hl}" 1>&2
+        echo "are capitalized for emphasis" 1>&2
     fi
 }

@@ -9,172 +9,129 @@
 
 . ./backup_utils.sh
 
-N=3
-# Constrain LEVEL to actual implementation
-if [ $LEVEL -lt 0 ]
-then
-    echo "Negative level backups cannot be made. Exiting"
-    exit 0
-elif [ $LEVEL -gt $N ]
-then
-    echo "This script does not have a rule for level > 3 backups. Exiting"
-    exit 0
-fi
+change_level () {
+    # $1 should be an archive filename without dirname
+    # $2 should be a single digit level
+    echo "$1" | sed -E "s@.[0-9]-@.${2}-@"
+}
 
-choose_incr_backup () {
-    # $1 should be a date of the form `date +%Y_%m_%U_%w` or 'YYYY_MM_WW_D'
-    # $2 is an optional directory (default $BACKUP_DEST)
+change_incr () {
+    # $1 should be an archive filename without dirname
+    # $2 should be a single digit increment
+    echo "$1" | sed -E "s@-[0-9]\.@-${2}.@"
+}
+
+change_date () {
+    # $1 should be an archive filename without dirname
+    # $2 should be a date in 'YYYY_Q_MM_WW_D' format
+    echo "$1" | sed -E "s@[0-9]{4}_[0-9]_[0-9]{2}_[0-9]{2}_[0-9]@${2}@"
+}
+
+raise_level () {
+    # Raise the level of an archive file by 1
+    # $1 should be an archive filename without dirname
+    local level=$((`file_level "$1"` + 1))
+    if [ $level -gt 9 -o $level -lt 0 ]
+    then
+        echo "Error: cannot increase level of ${1}" 1>&2
+        return 1
+    else
+        change_level "$1" "$level"
+    fi
+}
+
+raise_incr () {
+    # Raise the increment counter by 1
+    # $1 should be an archive filename without dirname
+    local incr=`file_incr "$1"`
+    incr=$((${incr#0} + 1))
+    if [ $incr -gt 9 -o $incr -lt 0 ]
+    then
+        echo "Error: cannot increase increment of ${1}" 1>&2
+        return 1
+    else
+        change_incr "$1" "$incr"
+    fi
+}
+
+raise_snar () {
+    # Raise the archive (.snar) a level and update date
+    # $1 should be an archive filename without dirname
+    # $2 should be a date
+    raise_level `change_date "$1" "$2"`
+}
+
+raise_tar () {
+    # Raise the archive (.tar) an increment and update date
+    # $1 should be an archive filename without dirname
+    # $2 should be a date
+    raise_incr `change_date "$1" "$2"`
+}
+
+name_incr_backup () {
+    # Names backup files with appropriate levels and increments
+    # $1 should be a directory to search
+    # $2 should be a date
+    # $3 should be a digit level (implemented 0-3)
     # Modifies global variables $BACKUP_ARXV, $BACKUP_SNAR as output
 
-    local i pattern_i pattern_i_1 snars
+    local dir="$1" date="$2" level="$3"
+    local pattern=`pattern_date_level "$date" "$level"`
+    # Use up-to-date snar on level if it is unique (more means a bug)
+    BACKUP_SNAR=`search_snar "$dir" "$pattern" "$level"`
+    BACKUP_SNAR=`return_uniq_result "$BACKUP_SNAR" "Multiple .snars found"`
+    # Create today's archive at this level one increment higher
+    BACKUP_ARXV=`search_arxv "$dir" "$pattern" "$level" "[0-9]" | tail -1`
+    BACKUP_ARXV=`raise_tar "$BACKUP_ARXV" "$date" | sed -E 's@snar\$@tar@'`
+}
 
-    if [ ! -d "$2" ]
-    then
-        set -- "$1" "$BACKUP_DEST"
-    fi
+choose_backup () {
+    # $1 is the archive directory
+    # $2 should be a date of the form `date +%V_%q_%m_%V_%u`
+    # Modifies global variables $BACKUP_ARXV, $BACKUP_SNAR as output
 
-    # Figure out the archive which should be incremented at the given day
-    i=0
-    while [ $i -lt $LEVEL ]
+    local dir="$1" date="$2" i pattern_i pattern_i_1
+    # Default level 0 filenames
+    BACKUP_ARXV="${PREFIX}.${date}.0-0.tar"
+    BACKUP_SNAR=/dev/null
+    # Figure out the level at which to increment the archive
+    i=1
+    while [ $i -le $LEVEL ]
     do
-        i=$(($i + 1))
-        pattern_i=`pattern_date_level "$1" "$i"`
-        snars=`search_snar "$2" "$pattern_i" "$i"`
-        if [ "$snars" ]
+        pattern_i=`pattern_date_level "$date" "$i"`
+        pattern_i_1=`pattern_date_level "$date" $(($i - 1))`
+        if [ `search_snar "$dir" "$pattern_i" "$i"` ]
         then
-            # an up-to-date .snar is available
+            # an up-to-date .snar is available at this level
             if [ $i -eq $LEVEL ]
             then
-                # The highest level is reached, so use the .snar
-                BACKUP_SNAR="$snars"
-                # Create today's archive at this level one increment higher
-                BACKUP_ARXV=$(raise_incr `search_arxv "$2" "$pattern_i" "$i" "[0-9]{2}" | tail -1`)
-                BACKUP_ARXV="${PREFIX}.${1}.`file_li ${BACKUP_ARXV}`.tar"
+                # At highest level, use the snar
+                name_incr_backup "$dir" "$date" "$i"
+                break
             else
                 # There may be a .snar at a higher level
+                i=$(($i + 1))
                 continue
             fi
+        elif [ `search_snar "$dir" "$pattern_i_1" $(($i - 1))` ]
+        then
+            # Select the existing lower-level snar
+            name_incr_backup "$dir" "$date" $(($i - 1))
+            break
         else
-            # no up-to-date .snar is available so return a level
-            if [ $i -eq 1 ]
-            then
-                # Create a full backup
-                BACKUP_ARXV="${PREFIX}.${1}.0-00.tar"
-                BACKUP_SNAR="${PREFIX}.${1}.1-00.snar"
-            else
-                # Select the existing lower-level snar
-                pattern_i_1=`pattern_date_level "$1" $(($i - 1))`
-                BACKUP_SNAR=`search_snar "$2" "$pattern_i_1" $(($i - 1))`
-                # Create this archive on lower level one increment higher
-                BACKUP_ARXV=$(raise_incr `search_arxv "$2" "$pattern_i_1" $(($i - 1)) "[0-9]{2}" | tail -1`)
-                BACKUP_ARXV="${PREFIX}.${1}.`file_li ${BACKUP_ARXV}`.tar"
-                if [ `echo "$BACKUP_SNAR" | wc -w` -ne 1 ]
-                then
-                    # Multiple snars found
-                    echo "Error: Multiple snars found ${BACKUP_SNAR}" 1>&2
-                    return 1
-                fi
-            fi
+            # Base case: there are no snars so prepare one for full backup
+            BACKUP_SNAR="${PREFIX}.${date}.1-0.snar"
             break
         fi
     done
-}
-
-draw_arxv () {
-    # Print a graphical representation of the archive structure to console
-    # $1 is an optional directory (default: $BACKUP_DEST)
-    # $2 is an optional file whose lines are archive files to be emphasized
-    local date l0 l1 l2 l3 incr tars snars i j tars_hl snars_hl mark
-
-    if [ ! -d "$1" ]
-    then
-        set "$BACKUP_DEST"
-    fi
-
-    # Print column headers
-    echo "| YYYY_MM_WW_D | 0 1 2 3 | II |" 1>&2
-    echo "| ----date---- | -level- | -- |" 1>&2
-
-    # Find all archive files with a unique date
-    for i in `ls "$1" | filter_archive | filter_date | uniq`
-    do
-        # Print one line of information per day
-        date="$i"
-        l0=" "; l1=" "; l2=" "; l3=" ";
-        # Count the total number of archives written that day
-        incr=`search_tar "$1" "$i" "[0-9]" "[0-9]{2}" | wc -w`
-        # Find all unique levels per date
-        for j in `ls "$1" | grep "$i" | filter_level | uniq`
-        do
-            tars=`search_tar "$1" "$i" "$j" "[0-9]{2}"`
-            snars=`search_snar "$1" "$i" "$j"`
-
-            # Check out if things should be highlighted
-            tars_hl=`search_tar "$2" "$i" "$j" "[0-9]{2}"`
-            snars_hl=`search_snar "$2" "$i" "$j"`
-
-            # figure out what exists at each level
-            if [ "$tars_hl" -a "$snars_hl" ] || [ "$tars_hl" -a "$snars" ] || [ "$tars" -a "$snars_hl" ]
-            then
-                # Both metadata and archive present and at least one highlighted
-                mark="B"
-            elif [ "$tars_hl" ]
-            then
-                # Only higlighted archive present
-                mark="X"
-            elif [ "$snars_hl" ]
-            then
-                # Only highlighted metadata present
-                mark="O"
-            elif [ "$tars" -a "$snars" ]
-            then
-                # Both metadata and archive present
-                mark="b"
-            elif [ "$tars" ]
-            then
-                # Only archive present
-                mark="x"
-            elif [ "$snars" ]
-            then
-                # Only metadata present
-                mark="o"
-            else
-                mark=" "
-            fi
-            eval `echo l${j}="${mark}"`
-        done
-        echo "| ${date} | ${l0} ${l1} ${l2} ${l3} | `printf '%02d' ${incr}` |" 1>&2
-    done
-
-    # Print column footers
-    echo "| ----date---- | -level- | -- |" 1>&2
-    echo "| YYYY_MM_WW_D | 0 1 2 3 | II |" 1>&2
-
-    # Print Legend
-    echo 1>&2
-    echo "Legend:" 1>&2
-    echo "date - format: %Y%m%U%w" 1>&2
-    echo "x/X  - archive made" 1>&2
-    echo "o/O  - snapshot made" 1>&2
-    echo "b/B  - archive and snapshot made" 1>&2
-    echo "II   - total increments per day" 1>&2
-
-    if [ -f $2 ]
-    then
-        # Print info about emphasis
-        echo 1>&2
-        echo "Files in ${2}" 1>&2
-        echo "are capitalized for emphasis" 1>&2
-    fi
 }
 
 test_brains () {
     # test to see if the choices of archive work as expected
     # by giving 2 years worth of dates and creating dummy files in response
 
-    local test_dir year month week day i arxv_level
+    local test_dir="testing" year quarter month week day i arxv_level REPLY
 
-    test_dir="testing"
     if [ ! -d "$test_dir" ] && $(basename `pwd` | grep -q -v "$test_dir")
     then
         mkdir "$test_dir"
@@ -187,21 +144,15 @@ test_brains () {
 
     for year in `seq 2020 2021`
     do
-        for week in `seq -w 0 53`
+        for week in `seq -w 1 53`
         do
-            for i in `seq -w 0 11`
+            # shorten a quarter to 12 weeks and a month to 4 weeks
+            quarter=$((((${week#0} - 1) / 12) + 1))
+            month=`printf '%02d' $((((${week#0} - 1) / 4) + 1))`
+            for day in `seq 1 7`
             do
-                # approximate a month by 4.5 weeks
-                if [ $((${week#0} * 2)) -ge $((${i#0} * 9)) -a $((${week#0} * 2)) -lt $(((${i#0} + 1) * 9)) ]
-                then
-                    month=`printf "%02d" $((${i#0} + 1))`
-                    break
-                fi
-            done
-            for day in `seq 0 6`
-            do
-                date="${year}_${month}_${week}_${day}"
-                choose_incr_backup "$date" "."
+                date="${year}_${quarter}_${month}_${week}_${day}"
+                choose_backup "." "$date"
                 touch "$BACKUP_ARXV" "$BACKUP_SNAR"
                 arxv_level=`file_level "$BACKUP_ARXV"`
                 if [ $arxv_level -ne $LEVEL -a $arxv_level -ne 0 ]
@@ -215,9 +166,8 @@ test_brains () {
 
     draw_arxv "$test_dir"
 
-    echo "Remove $test_dir? [y/N]"
-    read BOOL
-    if [ "$BOOL" = "y" ]
+    read -p "Remove $test_dir? [y/N] " REPLY
+    if [ "$REPLY" = "y" ]
     then
         rm -rf "${test_dir}"
     fi
