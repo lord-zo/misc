@@ -3,14 +3,14 @@
 # backup_clean.sh
 
 # By: Lorenzo Van Munoz
-# On: 28/03/2021
+# On: 29/03/2021
 
-USAGE="Usage: backup_clean.sh [-h] DATE
+USAGE="Usage: backup_clean.sh [-h] FILE
 
 Description: Deletes files in an incremental archive that are old
 
 Options:
-DATE    A date with YYYY_Q_MM_WW_D format or archive filename
+FILE    An archive filename or a date with YYYY_Q_MM_WW_D format
 -h      Show this message and exit
 
 Details:
@@ -19,8 +19,8 @@ file older than the given date that isn't a dependency of a more
 recent file
 
 Examples:
-$ ./backup_clean.sh 2021_5_14_53_7
-$ ./backup_clean.sh archive.2021_5_14_53_7.4-5.tar
+$ ./backup_clean.sh archive.2021_1_02_05_7.4-5.tar
+$ ./backup_clean.sh 2021_1_02_05_7
 "
 cd `dirname $0`
 . ./backup_graphs.sh
@@ -34,14 +34,13 @@ fi
 # filter out just the date
 set -- `echo "$1" | sed -E "s@.*(${DATE_PATTERN}).*@\1@"`
 
-BACKUP_DLOG="./backup_delete.log"
-touch "$BACKUP_DLOG"
+DATE=`set_DATE`
+BACKUP_DLOG="backup_delete_${DATE}.log"
+
 find_old_arxv "$BACKUP_DEST" "$1" > "$BACKUP_DLOG"
 
 confirmation "cleaning" "$BACKUP_DEST" "$BACKUP_DLOG"
 
-#cd "$BACKUP_DEST"
-#cat "$BACKUP_DLOG" | xargs -i rm {}
-#cd -
+cat "$BACKUP_DLOG" | xargs -i rm "$BACKUP_DEST"/{}
 
 exit 0

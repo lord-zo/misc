@@ -31,13 +31,27 @@ All things considered, it wouldn't be so hard to read the
 GNU backup scripts and cherry-pick what I want, but what
 mechanic doesn't want to build their own wheel?
 
-Please do not run these scripts using bash - there will be all
+# Summary
+
+The functionality of these shell scripts is made available in
+the following executables:
+- `backup.sh`: This actually makes a daily backup
+- `backup_restore.sh`: This restores some archive files
+- `backup_clean.sh`: This removes old files from the archive
+For more details, read the scripts since they are quite short
+and the behavior of certain calls to tar is controlled by these.
+Feel free to fiddle with them
+
+The majority of the internals of these scripts are contained in:
+- `backup_utils.`: This contains common and useful archival functions
+- `backup_brains.sh`: This automates making archive filenames
+- `backup_graphs.sh`: This navigates the archive dependency graph
+
+Please do not run these scripts using bash - there may be all
 sorts of baffling errors due to its POSIX incompliance in places.
 I tested this script using dash, in case you can find it too,
 but I'm not going to make any claims that this is truly portable.
-
-TODO:
-- Create a script to clean old files from the archive
+Just check which shell `/bin/sh` points to.
 
 The easiest way to automate the backups in WSL is to use
 the Windows Task Scheduler to run the script using the 
@@ -99,8 +113,10 @@ between the archive files and their metadata as the archive is incremented.
 To obtain the graph for a level N-M archive, truncate the rows for levels 
 N, N-1, ..., to N-M+1 from the graph.
 
-**Note:** a test function `test_brains` is included in `backup_brains.sh`
-so you can verify that this works ahead of time.
+# Tests
+
+A test function `test_brains` is included in `backup_brains.sh`
+so you can verify that `backup.sh` works ahead of time.
 
 ```
 $ . backup_brains.sh
@@ -121,6 +137,9 @@ $ test_brains
 # Output Truncated here
 
 ```
+
+To test the other scripts, try out the examples in their command-line help
+on the test files.
 
 **Note:** You may also supply a file to the drawing function
 in `backup_utils.sh`, `draw_arxv` which will emphasize the

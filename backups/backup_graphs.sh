@@ -4,8 +4,6 @@
 # By: Lorenzo Van Munoz
 # On: 28/03/2021
 
-# WARNING: do not run this in bash because echo works differently
-
 . ./backup_utils.sh
 
 # Functions to help navigate the dependency graph
@@ -100,39 +98,44 @@ find_prev_arxv () {
 }
 
 find_recovery_arxv () {
-    # Returns all the archives needed to restore the input states
+    # Returns all the archive files on the branch used to create the input
     # $1 should be a directory
-    # $2 should be a .tar archive file
+    # $2 should be an archive file
 
     local dir="$1" test="$2" prev
     while [ "$test" != "$prev" ]
     do
-        if [ `file_ext "$test"` = "tar" ]
-        then
-            echo "$test"
-        fi
+        echo "$test"
         prev="$test"
         test=`find_prev_arxv "$dir" "$prev"`
     done
 }
 
+find_recovery_tar () {
+    # Returns all the tar archives needed to restore the input state
+    # $1 should be a directory
+    # $2 should be a archive file
+
+    find_recovery_arxv "$1" "$2" | grep 'tar$'
+}
+
 find_old_arxv () {
     # Returns all the archives not needed to recover files created after date
     # $1 should be a directory
-    # $2 should be a date in %Y_%m_%U_%w format
+    # $2 should be a date in %G_%q_%m_%V_%u format
 
-    local dir="$1" date="$2" tmp_file="backup_graphs.tmp" arxv
+    local dir="$1" date="$2" tmp_file=`mktemp` arxv
     > "$tmp_file"
     for arxv in `ls "$dir" | filter_archive | grep -A 10000 "${date}.*tar$" | tac`
     do
+        grep -q -F "$arxv" "$tmp_file"
         # find all dependencies of this file
-        if `cat "$tmp_file" | grep -q -v "$arxv"`
+        if [ $? -ne 0 ]
         then
             # if file is not already included, find dependencies
             find_recovery_arxv "$dir" "$arxv" >> "$tmp_file"
         fi
     done
-    cat "$tmp_file" | uniq | sort > "$tmp_file"
     ls "$dir" | filter_archive | grep -v -f "$tmp_file"
-#    rm "$tmp_file"
+    rm "$tmp_file"
 }

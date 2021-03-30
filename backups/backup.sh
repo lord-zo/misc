@@ -4,11 +4,12 @@
 # By: Lorenzo Van Munoz
 # On: 28/03/2021
 
-USAGE="Usage: backup.sh [-h]
+USAGE="Usage: backup.sh [-h] [-t]
 
 Description: Incremental backup script with tar
 
 Options:
+-t  test this script as if it made backups once a day for 2 years
 -h  show this message and exit
 
 Details:
@@ -23,29 +24,22 @@ $ echo /some/files > ./backup_files.conf
 $ echo /some/dir > ./backup_destination.conf
 $ ./backup.sh
 "
+cd `dirname "$0"`
+. ./backup_brains.sh
 
 if [ "$1" = "-h" ]
 then
     echo "$USAGE"
     exit 0
+elif [ "$1" = "-t" ]
+then
+    test_brains
+    exit 0
 fi
-
-cd `dirname $0`
-
-. ./backup_brains.sh
 
 cd "$BACKUP_DEST"
 
-# Get date with ISO year and week
-# Format `date +%G_%q_%m_%V_%u`
-# For efficiency, shorten a month to exactly 4 weeks
-# and a quarter to exactly 3 months
-year=`date +%G`
-week=`date +%V`
-day=`date+%u`
-quarter=`printf '%02d' $((((${week#0} - 1) / 12) + 1))`
-month=`printf '%02d' $((((${week#0} - 1) / 4) + 1))`
-DATE="${year}_${quarter}_${month}_${week}_${day}"
+DATE=`set_DATE`
 
 choose_backup "$BACKUP_DEST" "$DATE"
 

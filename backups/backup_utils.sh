@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# backup_history_utils.sh
+# backup_utils.sh
 # By: Lorenzo Van Munoz
-# On: 28/03/2021
+# On: 29/03/2021
 
 # The functions gather information about archive file names
 # (which have a $PREFIX.YYYY_Q_MM_WW_D.L-I.\(snar\)\|\(tar\) format)
@@ -33,6 +33,19 @@ alias filter_archive="grep -E '${PREFIX}\.${DATE_PATTERN}\.[0-9]-[0-9]\.(tar|sna
 alias filter_date="sed -E 's@${PREFIX}\.(${DATE_PATTERN})\..*\.(tar|snar)\$@\1@'"
 alias filter_level="sed -E 's@.+\.([0-9])-[0-9]\.(tar|snar)\$@\1@'"
 alias filter_incr="sed -E 's@.+\.[0-9]-([0-9])\.(tar|snar)\$@\1@'"
+
+set_DATE () {
+    # This function gets today's date in the usual format for these archives
+    # Get date with ISO year and week
+    # Format `date +%G_%q_%m_%V_%u`
+    # For efficiency, shorten a month to exactly 4 weeks
+    # and a quarter to exactly 3 months
+
+    local year=`date +%G` week=`date +%V` day=`date+%u`
+    local quarter=`printf '%02d' $((((${week#0} - 1) / 12) + 1))`
+    local month=`printf '%02d' $((((${week#0} - 1) / 4) + 1))`
+    echo "${year}_${quarter}_${month}_${week}_${day}"
+}
 
 pattern_date_level () {
     # Returns a pattern to use to filter up-to-date files of the same level
@@ -209,6 +222,7 @@ confirmation () {
     # $1 should be an action verb (e.g. removing) to display in prompts
     # $2 should be the directory containing those actual files
     # $3 should be a file with archive filenames to review
+
     local action="$1" arxv_dir="$2" arxv_files="$3" REPLY
     read -p "review archive files before ${action}? [y/N] " REPLY
     if [ "${REPLY=N}" = "y" ]
@@ -218,10 +232,10 @@ confirmation () {
             read -p "view filenames [y] or archive graph [g]? [y/g/N] " REPLY
             if [ "${REPLY=N}" = "y" ]
             then
-                (less "$arxv_files")
+                less "$arxv_files"
             elif [ "${REPLY=N}" = "g" ]
             then
-                (draw_arxv "$arxv_dir" "$arxv_files" | less)
+                draw_arxv "$arxv_dir" "$arxv_files" | less
             else
                 break
             fi
@@ -244,7 +258,10 @@ draw_arxv () {
     # Print a graphical representation of the archive structure to console
     # $1 is an optional directory (default: $BACKUP_DEST)
     # $2 is an optional file whose lines are archive files to be emphasized
-    local dir="$1" file_hl="$2" arxvs tars snars arxvs_hl tars_hl snars_hl
+
+    local dir="$1" file_hl="$2"
+    local arxvs_date arxvs tars snars
+    local arxvs_date_hl arxvs_hl tars_hl snars_hl
     local date level marks mark incr
 
     if [ ! -d "$dir" ]
@@ -253,33 +270,40 @@ draw_arxv () {
     fi
 
     # Print column headers
-    echo "| YYYY_Q_MM_WW_D | 0 1 2 3 4 | I |" 1>&2
-    echo "| -----date----- | --level-- | - |" 1>&2
+    echo "| YYYY_Q_MM_WW_D | 0 1 2 3 4 | I |"
+    echo "| -----date----- | --level-- | - |"
 
     # Find all archive files with a unique date
     for date in `ls "$dir" | filter_archive | filter_date | uniq`
     do
         # Print one line of information per day
-        # Count the total number of archives written that day
         marks=""
-        incr=`search_tar "$dir" "$date" "[0-9]" "[0-9]" | wc -w`
+        # Find all archives from that day
+        arxvs_date=`search_arxv "$dir" "$date" "[0-9]" "[0-9]"`
+        if [ -f "$file_hl" ]
+        then
+            arxvs_date_hl=`search_arxv "$file_hl" "$date" "[0-9]" "[0-9]"`
+        fi
+        # Count the total number of archives written that day
+        incr=`echo "$arxvs_date" | grep tar$ | wc -w`
         # Find all unique levels per date (from 0 to 4)
         for level in `seq 0 $N`
         do
-            arxvs=`search_arxv "$dir" "$date" "$level" "[0-9]"`
+            # filter the current level
+            arxvs=`echo "$arxvs_date" | grep "\.${level}-[0-9]\.\(tar\|snar\)$"`
 
             if [ ! "$arxvs" ]
             then
                 mark=" "
             elif [ -f "$file_hl" ]
             then
+                arxvs_hl=`echo "$arxvs_date_hl" | grep "\.${level}-[0-9]\.\(tar\|snar\)$"`
                 # figure out what exists at each level
-                tars=`echo "$arxvs" | grep -E tar\$`
-                snars=`echo "$arxvs" | grep -E snar\$`
+                tars=`echo "$arxvs" | grep tar$`
+                snars=`echo "$arxvs" | grep snar$`
                 # Check out if things should be highlighted
-                arxvs_hl=`search_arxv "$file_hl" "$date" "$level" "[0-9]"`
-                tars_hl=`echo "$arxvs_hl" | grep -E tar\$`
-                snars_hl=`echo "$arxvs_hl" | grep -E snar\$`
+                tars_hl=`echo "$arxvs_hl" | grep tar$`
+                snars_hl=`echo "$arxvs_hl" | grep snar$`
                 if [ "$tars_hl" -a ! "$snars" ]
                 then
                     # Only higlighted archive present
@@ -306,8 +330,8 @@ draw_arxv () {
                 fi
             else
                 # figure out what exists at each level
-                tars=`echo "$arxvs" | grep -E tar\$`
-                snars=`echo "$arxvs" | grep -E snar\$`
+                tars=`echo "$arxvs" | grep tar$`
+                snars=`echo "$arxvs" | grep snar$`
                 if [ "$tars" -a ! "$snars" ]
                 then
                     # Only archive present
@@ -323,27 +347,27 @@ draw_arxv () {
             fi
             marks="${marks} ${mark}"
         done
-        echo "| ${date} |${marks} | ${incr} |" 1>&2
+        echo "| ${date} |${marks} | ${incr} |"
     done
 
     # Print column footers
-    echo "| YYYY_Q_MM_WW_D | 0 1 2 3 4 | I |" 1>&2
-    echo "| -----date----- | --level-- | - |" 1>&2
+    echo "| YYYY_Q_MM_WW_D | 0 1 2 3 4 | I |"
+    echo "| -----date----- | --level-- | - |"
 
     # Print Legend
-    echo 1>&2
-    echo "Legend:" 1>&2
-    echo "x/X  - archive made" 1>&2
-    echo "o/O  - snapshot made" 1>&2
-    echo "b/B  - archive and snapshot made" 1>&2
-    echo "I    - total increments per day" 1>&2
-    echo "date - format: %G_%q_%m_%V_%u" 1>&2
+    echo
+    echo "Legend:"
+    echo "x/X  - archive made"
+    echo "o/O  - snapshot made"
+    echo "b/B  - archive and snapshot made"
+    echo "I    - total increments per day"
+    echo "date - format: %G_%q_%m_%V_%u"
 
     if [ -f "$file_hl" ]
     then
         # Print info about emphasis
-        echo 1>&2
-        echo "Files in ${file_hl}" 1>&2
-        echo "are capitalized for emphasis" 1>&2
+        echo
+        echo "Files in ${file_hl}"
+        echo "are capitalized for emphasis"
     fi
 }
