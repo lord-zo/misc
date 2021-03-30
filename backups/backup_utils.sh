@@ -41,7 +41,7 @@ set_DATE () {
     # For efficiency, shorten a month to exactly 4 weeks
     # and a quarter to exactly 3 months
 
-    local year=`date +%G` week=`date +%V` day=`date+%u`
+    local year=`date +%G` week=`date +%V` day=`date +%u`
     local quarter=`printf '%02d' $((((${week#0} - 1) / 12) + 1))`
     local month=`printf '%02d' $((((${week#0} - 1) / 4) + 1))`
     echo "${year}_${quarter}_${month}_${week}_${day}"

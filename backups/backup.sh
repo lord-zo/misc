@@ -37,16 +37,14 @@ then
     exit 0
 fi
 
-cd "$BACKUP_DEST"
-
 DATE=`set_DATE`
 
 choose_backup "$BACKUP_DEST" "$DATE"
 
 # make backup (full or incremental)
 tar -c -P \
-    -g "$BACKUP_SNAR" \
-    -f "$BACKUP_ARXV" \
+    -g "${BACKUP_DEST}/${BACKUP_SNAR}" \
+    -f "${BACKUP_DEST}/${BACKUP_ARXV}" \
     -X "$BACKUP_IGNR" \
     -T "$BACKUP_FILE"
 
@@ -57,8 +55,8 @@ if [ $ARXV_LEVEL -ne $LEVEL -a $ARXV_LEVEL -ne 0 ]
 then
     # Not at top or bottom, so raise snar to next level
     cp \
-        "$BACKUP_SNAR" \
-        `raise_snar "$BACKUP_SNAR" "$DATE"`
+        "${BACKUP_DEST}/${BACKUP_SNAR}" \
+        "${BACKUP_DEST}/`raise_snar ${BACKUP_SNAR} ${DATE}`"
 fi
 
 exit 0
