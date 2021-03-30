@@ -2,7 +2,7 @@
 
 # backup.sh
 # By: Lorenzo Van Munoz
-# On: 28/03/2021
+# On: 29/03/2021
 
 USAGE="Usage: backup.sh [-h] [-t]
 
