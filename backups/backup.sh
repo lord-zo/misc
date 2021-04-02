@@ -24,6 +24,7 @@ $ echo /some/files > ./backup_files.conf
 $ echo /some/dir > ./backup_destination.conf
 $ ./backup.sh
 "
+
 cd `dirname "$0"`
 . ./backup_brains.sh
 
