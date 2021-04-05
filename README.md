@@ -1,5 +1,9 @@
 # misc
 
-A script is worth a thousand functions.
+A script is worth a thousand functions,
 
-A little help goes a long way.
+a function is worth a thousand pictures,
+
+if you get where this is going, then I 
+
+ask you to say something much sillier.
