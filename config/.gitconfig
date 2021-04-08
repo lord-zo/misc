@@ -1,0 +1,7 @@
+[credential "https://github.com"]
+	helper = !/usr/bin/gh auth git-credential
+[user]
+	email = lorenzo@vanmunoz.com
+	name = lxvm
+[init]
+	defaultBranch = main
