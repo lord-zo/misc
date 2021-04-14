@@ -62,6 +62,11 @@ do
     read -p "$PROMPT" REPLY
     if [ "$REPLY" = "y" ]
     then
+
+        if [ -e $HOME_DIR/$i ]
+        then
+            rm -f $HOME_DIR/$i
+        fi
         ln -s  $CONFIG_DIR/$i $HOME_DIR/$i
     fi
 done

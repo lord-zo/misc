@@ -13,3 +13,6 @@ alias win='cd /mnt/c/Users/lxvm/'
 alias doc='cd /mnt/c/Users/lxvm/Documents/'
 alias cls='cd /mnt/c/Users/lxvm/Documents/_current/'
 alias x='cd /mnt/c/Users/lxvm/Documents/LaTeX'
+# ---intel oneapi env init---
+alias oneapi=". /opt/intel/oneapi/setvars.sh intel64 mod"
+
