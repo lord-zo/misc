@@ -5,3 +5,5 @@
 	name = lxvm
 [init]
 	defaultBranch = main
+[core]
+	excludesfile = /home/lxvm/.gitignore
