@@ -1,0 +1,4 @@
+*
+-tab 4
+-spaces
+:include /etc/joe/joerc
