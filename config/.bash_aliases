@@ -14,5 +14,6 @@ alias doc='cd /mnt/c/Users/lxvm/Documents/'
 alias cls='cd /mnt/c/Users/lxvm/Documents/_current/'
 alias x='cd /mnt/c/Users/lxvm/Documents/LaTeX'
 # ---intel oneapi env init---
-alias oneapi=". /opt/intel/oneapi/setvars.sh intel64 mod"
-
+#alias oneapi=". /opt/intel/oneapi/setvars.sh intel64 mod"
+# ---julia aliases---
+alias jdoc="xdg-open /usr/share/doc/julia/html/en/index.html"
