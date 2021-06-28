@@ -1,0 +1,5 @@
+*
+-tab 4
+-spaces
+-autoindent
+:include /etc/joe/joerc

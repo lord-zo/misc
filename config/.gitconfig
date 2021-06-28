@@ -2,6 +2,10 @@
 	helper = !/usr/bin/gh auth git-credential
 [user]
 	email = lorenzo@vanmunoz.com
-	name = lxvm
+	name = Lorenzo X. Van Muñoz
 [init]
 	defaultBranch = main
+[core]
+	excludesfile = /home/lxvm/.gitignore
+[github]
+	user = lxvm

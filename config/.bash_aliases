@@ -5,7 +5,7 @@ alias mv='mv -i'
 # ---command line history---
 alias r='fc -s'
 
-# Platform-specifc aliases
+# Platform-specific aliases
 if $(echo `uname -n` | grep -q DESKTOP)
 then
     # WSL
@@ -26,4 +26,6 @@ else
     alias surf="cd '${HOME}/Dropbox/Inverse Design UROP S21'"
     # ---Julia---
     alias jdoc="xdg-open /usr/share/doc/julia/html/en/index.html"
+    # ---Intel---
+    #alias oneapi=". /opt/intel/oneapi/setvars.sh intel64 mod"
 fi

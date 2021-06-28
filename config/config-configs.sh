@@ -21,6 +21,7 @@ CONFIG_PATH=`readlink -f "$0"`
 CONFIG_FILE=`basename $CONFIG_PATH`
 CONFIG_DIR=`dirname $CONFIG_PATH`
 HOME_DIR=`readlink -f ~`
+EXCLUDE_FILE=`mktemp`
 
 USAGE="
 $CONFIG_FILE [-h]
@@ -41,21 +42,35 @@ echo copying config files
 echo at $CONFIG_DIR
 echo to $HOME_DIR
 
-for i in `ls -a $CONFIG_DIR`
+# Contents of exclude file
+echo "${CONFIG_FILE}
+README.md" > $EXCLUDE_FILE
+
+# 
+for i in `ls -A $CONFIG_DIR | grep -v -f $EXCLUDE_FILE`
 do
     if [ -e $HOME_DIR/$i ]
     then
         echo $i already exists in $HOME_DIR
+        PROMPT="overwrite? [y/N] "
     else
         echo $i not present in $HOME_DIR
-        # make symlinks (interactively?)
-        echo "make symlink? [y/N]"
-        read BOOL
-        if [ "$BOOL" = "y" ]
+        PROMPT="make symlink? [y/N] "
+    fi
+
+    # make symlinks interactively
+    read -p "$PROMPT" REPLY
+    if [ "$REPLY" = "y" ]
+    then
+
+        if [ -e $HOME_DIR/$i ]
         then
-            ln -s  $CONFIG_DIR/$i $HOME_DIR/$i
+            rm -f $HOME_DIR/$i
         fi
+        ln -s  $CONFIG_DIR/$i $HOME_DIR/$i
     fi
 done
+
+rm -f $EXCLUDE_FILE
 
 exit 0
