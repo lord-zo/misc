@@ -4,6 +4,8 @@ alias cp='cp -i'
 alias mv='mv -i'
 # ---command line history---
 alias r='fc -s'
+# ---Julia---
+alias jdev="cd ~/.julia/dev"
 
 # Platform-specific aliases
 if $(echo `uname -n` | grep -q DESKTOP)
