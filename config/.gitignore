@@ -2,3 +2,5 @@
 .*.sw?
 # backups of files
 *~
+# editors
+.vscode/
