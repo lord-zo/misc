@@ -26,9 +26,17 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 
-# set prompt: "lxvm .../repos/misc main $"
-export PROMPT_DIRTRIM=2
-export PS1="\[\033[01;32m\]\u \[\033[01;34m\]\w\[\033[90m\]\$(git branch 2>/dev/null | sed -n \"s/^*//p\" )\[\033[00m\] \$ "
-
-# set starting directory
-cd $HOME
+# Platform-specific actions
+if $(echo `uname -n` | grep -q DESKTOP)
+then
+    # WSL
+    # exclude hostname from prompt
+    export PS1="\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
+    # set prompt: "lxvm .../repos/misc main $"
+    #export PROMPT_DIRTRIM=2
+    #export PS1="\[\033[01;32m\]\u \[\033[01;34m\]\w\[\033[90m\]\$(git branch 2>/dev/null | sed -n \"s/^*//p\" )\[\033[00m\] \$ "
+    # set starting directory
+    cd $HOME
+    # script to switch windows terminal theme
+    ~/wt_auto_theme.ps1
+fi
